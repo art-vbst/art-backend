@@ -1,0 +1,22 @@
+# Go
+/bin/
+/build/
+/out/
+/vendor/
+
+# Environment
+.env
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Mac
+.DS_Store
+
+# Vim
+*.swp
+
+# Docker
+*.tar
