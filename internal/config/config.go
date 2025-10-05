@@ -17,8 +17,14 @@ func Load() *Config {
 		log.Println("No .env file found")
 	}
 
-	return &Config{
+	config := Config{
 		Port:  os.Getenv("PORT"),
 		DbUrl: os.Getenv("DB_URL"),
 	}
+
+	if config.Port == "" {
+		config.Port = "8080"
+	}
+
+	return &config
 }
