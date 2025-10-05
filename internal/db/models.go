@@ -166,6 +166,7 @@ type Artwork struct {
 type Image struct {
 	ID          pgtype.UUID      `db:"id" json:"id"`
 	ArtworkID   pgtype.UUID      `db:"artwork_id" json:"artwork_id"`
+	IsMainImage *bool            `db:"is_main_image" json:"is_main_image"`
 	ImageUrl    string           `db:"image_url" json:"image_url"`
 	ImageWidth  *int32           `db:"image_width" json:"image_width"`
 	ImageHeight *int32           `db:"image_height" json:"image_height"`

@@ -11,19 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countArtworksByStatus = `-- name: CountArtworksByStatus :one
-SELECT COUNT(*)
-FROM artworks
-WHERE status = $1
-`
-
-func (q *Queries) CountArtworksByStatus(ctx context.Context, status ArtworkStatus) (int64, error) {
-	row := q.db.QueryRow(ctx, countArtworksByStatus, status)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createArtwork = `-- name: CreateArtwork :one
 INSERT INTO artworks (
         title,
@@ -107,25 +94,85 @@ func (q *Queries) CreateArtwork(ctx context.Context, arg CreateArtworkParams) (A
 	return i, err
 }
 
-const deleteArtwork = `-- name: DeleteArtwork :exec
-DELETE FROM artworks
-WHERE id = $1
+const getArtwork = `-- name: GetArtwork :one
+SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at,
+    i.image_id, i.image_url, i.image_width, i.image_height, i.image_created_at
+FROM artworks a
+    LEFT JOIN LATERAL (
+        SELECT id as image_id,
+            image_url,
+            image_width,
+            image_height,
+            created_at as image_created_at
+        FROM images
+        WHERE artwork_id = a.id
+        ORDER BY is_main_image DESC NULLS LAST,
+            created_at
+        LIMIT 1
+    ) i ON true
+WHERE a.id = $1
 `
 
-func (q *Queries) DeleteArtwork(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteArtwork, id)
-	return err
+type GetArtworkRow struct {
+	ID             pgtype.UUID      `db:"id" json:"id"`
+	Title          string           `db:"title" json:"title"`
+	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
+	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
+	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
+	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
+	PriceCents     *int32           `db:"price_cents" json:"price_cents"`
+	Paper          *bool            `db:"paper" json:"paper"`
+	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
+	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
+	Status         ArtworkStatus    `db:"status" json:"status"`
+	Medium         ArtworkMedium    `db:"medium" json:"medium"`
+	Category       ArtworkCategory  `db:"category" json:"category"`
+	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+	ImageID        pgtype.UUID      `db:"image_id" json:"image_id"`
+	ImageUrl       string           `db:"image_url" json:"image_url"`
+	ImageWidth     *int32           `db:"image_width" json:"image_width"`
+	ImageHeight    *int32           `db:"image_height" json:"image_height"`
+	ImageCreatedAt pgtype.Timestamp `db:"image_created_at" json:"image_created_at"`
 }
 
-const getArtwork = `-- name: GetArtwork :one
+func (q *Queries) GetArtwork(ctx context.Context, id pgtype.UUID) (GetArtworkRow, error) {
+	row := q.db.QueryRow(ctx, getArtwork, id)
+	var i GetArtworkRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.PaintingNumber,
+		&i.PaintingYear,
+		&i.WidthInches,
+		&i.HeightInches,
+		&i.PriceCents,
+		&i.Paper,
+		&i.SortOrder,
+		&i.SoldAt,
+		&i.Status,
+		&i.Medium,
+		&i.Category,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ImageID,
+		&i.ImageUrl,
+		&i.ImageWidth,
+		&i.ImageHeight,
+		&i.ImageCreatedAt,
+	)
+	return i, err
+}
+
+const getArtworkRaw = `-- name: GetArtworkRaw :one
 SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
 FROM artworks
 WHERE id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetArtwork(ctx context.Context, id pgtype.UUID) (Artwork, error) {
-	row := q.db.QueryRow(ctx, getArtwork, id)
+func (q *Queries) GetArtworkRaw(ctx context.Context, id pgtype.UUID) (Artwork, error) {
+	row := q.db.QueryRow(ctx, getArtworkRaw, id)
 	var i Artwork
 	err := row.Scan(
 		&i.ID,
@@ -150,6 +197,7 @@ func (q *Queries) GetArtwork(ctx context.Context, id pgtype.UUID) (Artwork, erro
 const getArtworkWithImages = `-- name: GetArtworkWithImages :many
 SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at,
     i.id as image_id,
+    i.is_main_image,
     i.image_url,
     i.image_width,
     i.image_height,
@@ -177,6 +225,7 @@ type GetArtworkWithImagesRow struct {
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	ImageID        pgtype.UUID      `db:"image_id" json:"image_id"`
+	IsMainImage    *bool            `db:"is_main_image" json:"is_main_image"`
 	ImageUrl       *string          `db:"image_url" json:"image_url"`
 	ImageWidth     *int32           `db:"image_width" json:"image_width"`
 	ImageHeight    *int32           `db:"image_height" json:"image_height"`
@@ -209,6 +258,7 @@ func (q *Queries) GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]G
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ImageID,
+			&i.IsMainImage,
 			&i.ImageUrl,
 			&i.ImageWidth,
 			&i.ImageHeight,
@@ -224,115 +274,58 @@ func (q *Queries) GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]G
 	return items, nil
 }
 
-const getArtworksByPriceRange = `-- name: GetArtworksByPriceRange :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-WHERE status = 'available'
-    AND price_cents >= $1
-    AND price_cents <= $2
-ORDER BY price_cents
-`
-
-type GetArtworksByPriceRangeParams struct {
-	PriceCents   *int32 `db:"price_cents" json:"price_cents"`
-	PriceCents_2 *int32 `db:"price_cents_2" json:"price_cents_2"`
-}
-
-func (q *Queries) GetArtworksByPriceRange(ctx context.Context, arg GetArtworksByPriceRangeParams) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, getArtworksByPriceRange, arg.PriceCents, arg.PriceCents_2)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getRecentArtworks = `-- name: GetRecentArtworks :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-ORDER BY created_at DESC
-LIMIT $1
-`
-
-func (q *Queries) GetRecentArtworks(ctx context.Context, limit int32) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, getRecentArtworks, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listArtworks = `-- name: ListArtworks :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-ORDER BY sort_order,
-    created_at DESC
+SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at,
+    i.image_id, i.image_url, i.image_width, i.image_height, i.image_created_at
+FROM artworks a
+    LEFT JOIN LATERAL (
+        SELECT id as image_id,
+            image_url,
+            image_width,
+            image_height,
+            created_at as image_created_at
+        FROM images
+        WHERE artwork_id = a.id
+        ORDER BY is_main_image DESC NULLS LAST,
+            created_at
+        LIMIT 1
+    ) i ON true
+ORDER BY a.sort_order,
+    a.created_at DESC
 `
 
-func (q *Queries) ListArtworks(ctx context.Context) ([]Artwork, error) {
+type ListArtworksRow struct {
+	ID             pgtype.UUID      `db:"id" json:"id"`
+	Title          string           `db:"title" json:"title"`
+	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
+	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
+	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
+	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
+	PriceCents     *int32           `db:"price_cents" json:"price_cents"`
+	Paper          *bool            `db:"paper" json:"paper"`
+	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
+	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
+	Status         ArtworkStatus    `db:"status" json:"status"`
+	Medium         ArtworkMedium    `db:"medium" json:"medium"`
+	Category       ArtworkCategory  `db:"category" json:"category"`
+	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+	ImageID        pgtype.UUID      `db:"image_id" json:"image_id"`
+	ImageUrl       string           `db:"image_url" json:"image_url"`
+	ImageWidth     *int32           `db:"image_width" json:"image_width"`
+	ImageHeight    *int32           `db:"image_height" json:"image_height"`
+	ImageCreatedAt pgtype.Timestamp `db:"image_created_at" json:"image_created_at"`
+}
+
+func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
 	rows, err := q.db.Query(ctx, listArtworks)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Artwork
+	var items []ListArtworksRow
 	for rows.Next() {
-		var i Artwork
+		var i ListArtworksRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -349,6 +342,11 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]Artwork, error) {
 			&i.Category,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ImageID,
+			&i.ImageUrl,
+			&i.ImageWidth,
+			&i.ImageHeight,
+			&i.ImageCreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -360,16 +358,15 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]Artwork, error) {
 	return items, nil
 }
 
-const listArtworksByCategory = `-- name: ListArtworksByCategory :many
+const listArtworksRaw = `-- name: ListArtworksRaw :many
 SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
 FROM artworks
-WHERE category = $1
 ORDER BY sort_order,
     created_at DESC
 `
 
-func (q *Queries) ListArtworksByCategory(ctx context.Context, category ArtworkCategory) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, listArtworksByCategory, category)
+func (q *Queries) ListArtworksRaw(ctx context.Context) ([]Artwork, error) {
+	rows, err := q.db.Query(ctx, listArtworksRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -402,321 +399,4 @@ func (q *Queries) ListArtworksByCategory(ctx context.Context, category ArtworkCa
 		return nil, err
 	}
 	return items, nil
-}
-
-const listArtworksByStatus = `-- name: ListArtworksByStatus :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-WHERE status = $1
-ORDER BY sort_order,
-    created_at DESC
-`
-
-func (q *Queries) ListArtworksByStatus(ctx context.Context, status ArtworkStatus) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, listArtworksByStatus, status)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listArtworksByStatusAndCategory = `-- name: ListArtworksByStatusAndCategory :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-WHERE status = $1
-    AND category = $2
-ORDER BY sort_order,
-    created_at DESC
-`
-
-type ListArtworksByStatusAndCategoryParams struct {
-	Status   ArtworkStatus   `db:"status" json:"status"`
-	Category ArtworkCategory `db:"category" json:"category"`
-}
-
-func (q *Queries) ListArtworksByStatusAndCategory(ctx context.Context, arg ListArtworksByStatusAndCategoryParams) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, listArtworksByStatusAndCategory, arg.Status, arg.Category)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAvailableArtworks = `-- name: ListAvailableArtworks :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-WHERE status = 'available'
-ORDER BY sort_order,
-    created_at DESC
-LIMIT $1 OFFSET $2
-`
-
-type ListAvailableArtworksParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListAvailableArtworks(ctx context.Context, arg ListAvailableArtworksParams) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, listAvailableArtworks, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchArtworksByTitle = `-- name: SearchArtworksByTitle :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-WHERE title ILIKE '%' || $1 || '%'
-ORDER BY sort_order,
-    created_at DESC
-`
-
-func (q *Queries) SearchArtworksByTitle(ctx context.Context, dollar_1 *string) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, searchArtworksByTitle, dollar_1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updateArtwork = `-- name: UpdateArtwork :one
-UPDATE artworks
-SET title = COALESCE($1, title),
-    painting_number = COALESCE($2, painting_number),
-    painting_year = COALESCE($3, painting_year),
-    width_inches = COALESCE($4, width_inches),
-    height_inches = COALESCE($5, height_inches),
-    price_cents = COALESCE($6, price_cents),
-    paper = COALESCE($7, paper),
-    sort_order = COALESCE($8, sort_order),
-    sold_at = COALESCE($9, sold_at),
-    status = COALESCE($10, status),
-    medium = COALESCE($11, medium),
-    category = COALESCE($12, category),
-    updated_at = current_timestamp
-WHERE id = $13
-RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-`
-
-type UpdateArtworkParams struct {
-	Title          *string             `db:"title" json:"title"`
-	PaintingNumber *int32              `db:"painting_number" json:"painting_number"`
-	PaintingYear   *int32              `db:"painting_year" json:"painting_year"`
-	WidthInches    pgtype.Numeric      `db:"width_inches" json:"width_inches"`
-	HeightInches   pgtype.Numeric      `db:"height_inches" json:"height_inches"`
-	PriceCents     *int32              `db:"price_cents" json:"price_cents"`
-	Paper          *bool               `db:"paper" json:"paper"`
-	SortOrder      *int32              `db:"sort_order" json:"sort_order"`
-	SoldAt         pgtype.Timestamp    `db:"sold_at" json:"sold_at"`
-	Status         NullArtworkStatus   `db:"status" json:"status"`
-	Medium         NullArtworkMedium   `db:"medium" json:"medium"`
-	Category       NullArtworkCategory `db:"category" json:"category"`
-	ID             pgtype.UUID         `db:"id" json:"id"`
-}
-
-func (q *Queries) UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (Artwork, error) {
-	row := q.db.QueryRow(ctx, updateArtwork,
-		arg.Title,
-		arg.PaintingNumber,
-		arg.PaintingYear,
-		arg.WidthInches,
-		arg.HeightInches,
-		arg.PriceCents,
-		arg.Paper,
-		arg.SortOrder,
-		arg.SoldAt,
-		arg.Status,
-		arg.Medium,
-		arg.Category,
-		arg.ID,
-	)
-	var i Artwork
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.PaintingNumber,
-		&i.PaintingYear,
-		&i.WidthInches,
-		&i.HeightInches,
-		&i.PriceCents,
-		&i.Paper,
-		&i.SortOrder,
-		&i.SoldAt,
-		&i.Status,
-		&i.Medium,
-		&i.Category,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const updateArtworkSortOrder = `-- name: UpdateArtworkSortOrder :exec
-UPDATE artworks
-SET sort_order = $2,
-    updated_at = current_timestamp
-WHERE id = $1
-`
-
-type UpdateArtworkSortOrderParams struct {
-	ID        pgtype.UUID `db:"id" json:"id"`
-	SortOrder *int32      `db:"sort_order" json:"sort_order"`
-}
-
-func (q *Queries) UpdateArtworkSortOrder(ctx context.Context, arg UpdateArtworkSortOrderParams) error {
-	_, err := q.db.Exec(ctx, updateArtworkSortOrder, arg.ID, arg.SortOrder)
-	return err
-}
-
-const updateArtworkStatus = `-- name: UpdateArtworkStatus :one
-UPDATE artworks
-SET status = $2,
-    sold_at = CASE
-        WHEN $2 = 'sold' THEN current_timestamp
-        ELSE sold_at
-    END,
-    updated_at = current_timestamp
-WHERE id = $1
-RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-`
-
-type UpdateArtworkStatusParams struct {
-	ID     pgtype.UUID   `db:"id" json:"id"`
-	Status ArtworkStatus `db:"status" json:"status"`
-}
-
-func (q *Queries) UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) (Artwork, error) {
-	row := q.db.QueryRow(ctx, updateArtworkStatus, arg.ID, arg.Status)
-	var i Artwork
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.PaintingNumber,
-		&i.PaintingYear,
-		&i.WidthInches,
-		&i.HeightInches,
-		&i.PriceCents,
-		&i.Paper,
-		&i.SortOrder,
-		&i.SoldAt,
-		&i.Status,
-		&i.Medium,
-		&i.Category,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }

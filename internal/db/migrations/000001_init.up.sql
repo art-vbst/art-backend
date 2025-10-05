@@ -34,6 +34,7 @@ CREATE TABLE artworks (
 CREATE TABLE images (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     artwork_id UUID REFERENCES artworks (id) ON DELETE CASCADE,
+    is_main_image BOOLEAN DEFAULT FALSE,
     image_url TEXT NOT NULL,
     image_width INTEGER,
     image_height INTEGER,

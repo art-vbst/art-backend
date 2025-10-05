@@ -11,30 +11,13 @@ import (
 )
 
 type Querier interface {
-	CountArtworksByStatus(ctx context.Context, status ArtworkStatus) (int64, error)
-	CountImagesByArtwork(ctx context.Context, artworkID pgtype.UUID) (int64, error)
 	CreateArtwork(ctx context.Context, arg CreateArtworkParams) (Artwork, error)
 	CreateImage(ctx context.Context, arg CreateImageParams) (Image, error)
-	DeleteArtwork(ctx context.Context, id pgtype.UUID) error
-	DeleteImage(ctx context.Context, id pgtype.UUID) error
-	DeleteImagesByArtwork(ctx context.Context, artworkID pgtype.UUID) error
-	GetArtwork(ctx context.Context, id pgtype.UUID) (Artwork, error)
+	GetArtwork(ctx context.Context, id pgtype.UUID) (GetArtworkRow, error)
+	GetArtworkRaw(ctx context.Context, id pgtype.UUID) (Artwork, error)
 	GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]GetArtworkWithImagesRow, error)
-	GetArtworksByPriceRange(ctx context.Context, arg GetArtworksByPriceRangeParams) ([]Artwork, error)
-	GetFirstImageByArtwork(ctx context.Context, artworkID pgtype.UUID) (Image, error)
-	GetImage(ctx context.Context, id pgtype.UUID) (Image, error)
-	GetRecentArtworks(ctx context.Context, limit int32) ([]Artwork, error)
-	ListArtworks(ctx context.Context) ([]Artwork, error)
-	ListArtworksByCategory(ctx context.Context, category ArtworkCategory) ([]Artwork, error)
-	ListArtworksByStatus(ctx context.Context, status ArtworkStatus) ([]Artwork, error)
-	ListArtworksByStatusAndCategory(ctx context.Context, arg ListArtworksByStatusAndCategoryParams) ([]Artwork, error)
-	ListAvailableArtworks(ctx context.Context, arg ListAvailableArtworksParams) ([]Artwork, error)
-	ListImagesByArtwork(ctx context.Context, artworkID pgtype.UUID) ([]Image, error)
-	SearchArtworksByTitle(ctx context.Context, dollar_1 *string) ([]Artwork, error)
-	UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (Artwork, error)
-	UpdateArtworkSortOrder(ctx context.Context, arg UpdateArtworkSortOrderParams) error
-	UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) (Artwork, error)
-	UpdateImage(ctx context.Context, arg UpdateImageParams) (Image, error)
+	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
+	ListArtworksRaw(ctx context.Context) ([]Artwork, error)
 }
 
 var _ Querier = (*Queries)(nil)
