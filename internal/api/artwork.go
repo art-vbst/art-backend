@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -65,7 +66,7 @@ func (h *ArtworkHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	seen := make(map[pgtype.UUID]bool)
-	var response []ArtworkListResponse
+	response := make([]ArtworkListResponse, 0)
 
 	for _, row := range artworks {
 		if !seen[row.ID] {
@@ -158,9 +159,9 @@ func (h *ArtworkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Title:          req.Title,
 		PaintingNumber: nil,
 		PaintingYear:   req.Year,
-		WidthInches:    pgtype.Numeric{},
-		HeightInches:   pgtype.Numeric{},
-		PriceCents:     nil,
+		WidthInches:    pgtype.Numeric{Int: big.NewInt(875), Exp: -2, Valid: true},
+		HeightInches:   pgtype.Numeric{Int: big.NewInt(875), Exp: -2, Valid: true},
+		PriceCents:     10_000,
 		Paper:          nil,
 		SortOrder:      nil,
 		SoldAt:         pgtype.Timestamp{},

@@ -49,7 +49,7 @@ type CreateArtworkParams struct {
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
 	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
-	PriceCents     *int32           `db:"price_cents" json:"price_cents"`
+	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
 	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
@@ -120,7 +120,7 @@ type GetArtworkRow struct {
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
 	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
-	PriceCents     *int32           `db:"price_cents" json:"price_cents"`
+	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
 	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
@@ -164,36 +164,6 @@ func (q *Queries) GetArtwork(ctx context.Context, id pgtype.UUID) (GetArtworkRow
 	return i, err
 }
 
-const getArtworkRaw = `-- name: GetArtworkRaw :one
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-WHERE id = $1
-LIMIT 1
-`
-
-func (q *Queries) GetArtworkRaw(ctx context.Context, id pgtype.UUID) (Artwork, error) {
-	row := q.db.QueryRow(ctx, getArtworkRaw, id)
-	var i Artwork
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.PaintingNumber,
-		&i.PaintingYear,
-		&i.WidthInches,
-		&i.HeightInches,
-		&i.PriceCents,
-		&i.Paper,
-		&i.SortOrder,
-		&i.SoldAt,
-		&i.Status,
-		&i.Medium,
-		&i.Category,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getArtworkWithImages = `-- name: GetArtworkWithImages :many
 SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at,
     i.id as image_id,
@@ -215,7 +185,7 @@ type GetArtworkWithImagesRow struct {
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
 	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
-	PriceCents     *int32           `db:"price_cents" json:"price_cents"`
+	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
 	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
@@ -274,6 +244,58 @@ func (q *Queries) GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]G
 	return items, nil
 }
 
+const getStripeDataByArtworkIDs = `-- name: GetStripeDataByArtworkIDs :many
+SELECT a.id,
+    a.title,
+    a.price_cents,
+    i.image_id, i.image_url
+FROM artworks a
+    LEFT JOIN LATERAL (
+        SELECT id as image_id,
+            image_url
+        FROM images
+        WHERE artwork_id = a.id
+        ORDER BY is_main_image DESC NULLS LAST,
+            created_at
+        LIMIT 1
+    ) i ON true
+WHERE a.id = ANY($1::uuid[])
+`
+
+type GetStripeDataByArtworkIDsRow struct {
+	ID         pgtype.UUID `db:"id" json:"id"`
+	Title      string      `db:"title" json:"title"`
+	PriceCents int32       `db:"price_cents" json:"price_cents"`
+	ImageID    pgtype.UUID `db:"image_id" json:"image_id"`
+	ImageUrl   string      `db:"image_url" json:"image_url"`
+}
+
+func (q *Queries) GetStripeDataByArtworkIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]GetStripeDataByArtworkIDsRow, error) {
+	rows, err := q.db.Query(ctx, getStripeDataByArtworkIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStripeDataByArtworkIDsRow
+	for rows.Next() {
+		var i GetStripeDataByArtworkIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.PriceCents,
+			&i.ImageID,
+			&i.ImageUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listArtworks = `-- name: ListArtworks :many
 SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at,
     i.image_id, i.image_url, i.image_width, i.image_height, i.image_created_at
@@ -301,7 +323,7 @@ type ListArtworksRow struct {
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
 	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
-	PriceCents     *int32           `db:"price_cents" json:"price_cents"`
+	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
 	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
@@ -347,49 +369,6 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
 			&i.ImageWidth,
 			&i.ImageHeight,
 			&i.ImageCreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listArtworksRaw = `-- name: ListArtworksRaw :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at
-FROM artworks
-ORDER BY sort_order,
-    created_at DESC
-`
-
-func (q *Queries) ListArtworksRaw(ctx context.Context) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, listArtworksRaw)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

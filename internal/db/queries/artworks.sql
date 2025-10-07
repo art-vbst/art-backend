@@ -30,13 +30,6 @@ VALUES (
 RETURNING *;
 
 
--- name: GetArtworkRaw :one
-SELECT *
-FROM artworks
-WHERE id = $1
-LIMIT 1;
-
-
 -- name: GetArtwork :one
 SELECT a.*,
     i.*
@@ -70,11 +63,22 @@ WHERE a.id = $1
 ORDER BY i.created_at;
 
 
--- name: ListArtworksRaw :many
-SELECT *
-FROM artworks
-ORDER BY sort_order,
-    created_at DESC;
+-- name: GetStripeDataByArtworkIDs :many
+SELECT a.id,
+    a.title,
+    a.price_cents,
+    i.*
+FROM artworks a
+    LEFT JOIN LATERAL (
+        SELECT id as image_id,
+            image_url
+        FROM images
+        WHERE artwork_id = a.id
+        ORDER BY is_main_image DESC NULLS LAST,
+            created_at
+        LIMIT 1
+    ) i ON true
+WHERE a.id = ANY($1::uuid[]);
 
 
 -- name: ListArtworks :many

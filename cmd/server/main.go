@@ -8,13 +8,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/talmage89/art-backend/internal/api"
 	"github.com/talmage89/art-backend/internal/config"
 	"github.com/talmage89/art-backend/internal/db"
 )
 
-func getDbConnection(ctx context.Context, env *config.Config) *db.Queries {
+func getDbConnectionPool(ctx context.Context, env *config.Config) (*db.Queries, *pgxpool.Pool) {
 	poolConfig, err := pgxpool.ParseConfig(env.DbUrl)
 	if err != nil {
 		log.Fatal(err)
@@ -35,16 +36,12 @@ func getDbConnection(ctx context.Context, env *config.Config) *db.Queries {
 		log.Fatal(err)
 	}
 
-	return db.New(pool)
+	queries := db.New(pool)
+
+	return queries, pool
 }
 
-func main() {
-	env := config.Load()
-	ctx := context.Background()
-
-	queries := getDbConnection(ctx, env)
-	artworkHandler := api.NewArtworkHandler(queries)
-
+func getRouter(env *config.Config) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -54,7 +51,32 @@ func main() {
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(middleware.Throttle(100))
 
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{env.FrontendUrl, "https://checkout.stripe.com"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
+	return r
+}
+
+func main() {
+	env := config.Load()
+	ctx := context.Background()
+
+	queries, pool := getDbConnectionPool(ctx, env)
+	defer pool.Close()
+
+	r := getRouter(env)
+
+	artworkHandler := api.NewArtworkHandler(queries)
 	r.Mount("/artwork", artworkHandler.Routes())
+
+	stripeHandler := api.NewStripeHandler(env, queries)
+	r.Mount("/stripe", stripeHandler.Routes())
 
 	log.Printf("Server starting on :%s", env.Port)
 	if err := http.ListenAndServe(":"+env.Port, r); err != nil {

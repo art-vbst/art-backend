@@ -14,10 +14,9 @@ type Querier interface {
 	CreateArtwork(ctx context.Context, arg CreateArtworkParams) (Artwork, error)
 	CreateImage(ctx context.Context, arg CreateImageParams) (Image, error)
 	GetArtwork(ctx context.Context, id pgtype.UUID) (GetArtworkRow, error)
-	GetArtworkRaw(ctx context.Context, id pgtype.UUID) (Artwork, error)
 	GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]GetArtworkWithImagesRow, error)
+	GetStripeDataByArtworkIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]GetStripeDataByArtworkIDsRow, error)
 	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
-	ListArtworksRaw(ctx context.Context) ([]Artwork, error)
 }
 
 var _ Querier = (*Queries)(nil)
