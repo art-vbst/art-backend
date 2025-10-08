@@ -259,7 +259,7 @@ FROM artworks a
             created_at
         LIMIT 1
     ) i ON true
-WHERE a.id = ANY($1::uuid[])
+WHERE a.id = ANY($1::uuid [])
 `
 
 type GetStripeDataByArtworkIDsRow struct {

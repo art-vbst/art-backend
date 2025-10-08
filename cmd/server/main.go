@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/talmage89/art-backend/internal/api"
+	"github.com/talmage89/art-backend/internal/api/payments"
 	"github.com/talmage89/art-backend/internal/config"
 	"github.com/talmage89/art-backend/internal/db"
 )
@@ -75,8 +76,8 @@ func main() {
 	artworkHandler := api.NewArtworkHandler(queries)
 	r.Mount("/artwork", artworkHandler.Routes())
 
-	stripeHandler := api.NewStripeHandler(env, queries)
-	r.Mount("/stripe", stripeHandler.Routes())
+	paymentsHandler := payments.NewPaymentsHandler(env, queries)
+	r.Mount("/stripe", paymentsHandler.Routes())
 
 	log.Printf("Server starting on :%s", env.Port)
 	if err := http.ListenAndServe(":"+env.Port, r); err != nil {

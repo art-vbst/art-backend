@@ -145,6 +145,95 @@ func (ns NullArtworkStatus) Value() (driver.Value, error) {
 	return string(ns.ArtworkStatus), nil
 }
 
+type OrderStatus string
+
+const (
+	OrderStatusPending    OrderStatus = "pending"
+	OrderStatusProcessing OrderStatus = "processing"
+	OrderStatusShipped    OrderStatus = "shipped"
+	OrderStatusCompleted  OrderStatus = "completed"
+	OrderStatusFailed     OrderStatus = "failed"
+	OrderStatusRefunded   OrderStatus = "refunded"
+)
+
+func (e *OrderStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrderStatus(s)
+	case string:
+		*e = OrderStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrderStatus: %T", src)
+	}
+	return nil
+}
+
+type NullOrderStatus struct {
+	OrderStatus OrderStatus `json:"order_status"`
+	Valid       bool        `json:"valid"` // Valid is true if OrderStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrderStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrderStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrderStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrderStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrderStatus), nil
+}
+
+type PaymentStatus string
+
+const (
+	PaymentStatusSucceeded PaymentStatus = "succeeded"
+	PaymentStatusFailed    PaymentStatus = "failed"
+	PaymentStatusRefunded  PaymentStatus = "refunded"
+)
+
+func (e *PaymentStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PaymentStatus(s)
+	case string:
+		*e = PaymentStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PaymentStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPaymentStatus struct {
+	PaymentStatus PaymentStatus `json:"payment_status"`
+	Valid         bool          `json:"valid"` // Valid is true if PaymentStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPaymentStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PaymentStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PaymentStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPaymentStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PaymentStatus), nil
+}
+
 type Artwork struct {
 	ID             pgtype.UUID      `db:"id" json:"id"`
 	Title          string           `db:"title" json:"title"`
@@ -172,4 +261,38 @@ type Image struct {
 	ImageHeight *int32           `db:"image_height" json:"image_height"`
 	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+type Order struct {
+	ID                    pgtype.UUID      `db:"id" json:"id"`
+	StripeSessionID       *string          `db:"stripe_session_id" json:"stripe_session_id"`
+	StripePaymentIntentID *string          `db:"stripe_payment_intent_id" json:"stripe_payment_intent_id"`
+	CustomerEmail         string           `db:"customer_email" json:"customer_email"`
+	ShippingRateID        string           `db:"shipping_rate_id" json:"shipping_rate_id"`
+	ShippingName          string           `db:"shipping_name" json:"shipping_name"`
+	ShippingAddressLine1  string           `db:"shipping_address_line1" json:"shipping_address_line1"`
+	ShippingAddressLine2  *string          `db:"shipping_address_line2" json:"shipping_address_line2"`
+	ShippingCity          string           `db:"shipping_city" json:"shipping_city"`
+	ShippingPostalCode    string           `db:"shipping_postal_code" json:"shipping_postal_code"`
+	ShippingState         string           `db:"shipping_state" json:"shipping_state"`
+	ShippingCountry       string           `db:"shipping_country" json:"shipping_country"`
+	SubtotalCents         int32            `db:"subtotal_cents" json:"subtotal_cents"`
+	ShippingCents         int32            `db:"shipping_cents" json:"shipping_cents"`
+	TotalCents            int32            `db:"total_cents" json:"total_cents"`
+	Currency              string           `db:"currency" json:"currency"`
+	Status                OrderStatus      `db:"status" json:"status"`
+	CreatedAt             pgtype.Timestamp `db:"created_at" json:"created_at"`
+}
+
+type Payment struct {
+	ID                    pgtype.UUID      `db:"id" json:"id"`
+	OrderID               pgtype.UUID      `db:"order_id" json:"order_id"`
+	StripePaymentIntentID string           `db:"stripe_payment_intent_id" json:"stripe_payment_intent_id"`
+	SubtotalCents         int32            `db:"subtotal_cents" json:"subtotal_cents"`
+	ShippingCents         int32            `db:"shipping_cents" json:"shipping_cents"`
+	ShippingStripeID      string           `db:"shipping_stripe_id" json:"shipping_stripe_id"`
+	TotalCents            int32            `db:"total_cents" json:"total_cents"`
+	Currency              string           `db:"currency" json:"currency"`
+	Status                PaymentStatus    `db:"status" json:"status"`
+	CreatedAt             pgtype.Timestamp `db:"created_at" json:"created_at"`
 }

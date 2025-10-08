@@ -8,7 +8,6 @@ INSERT INTO images (
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
-
 -- -- name: GetImage :one
 -- SELECT *
 -- FROM images

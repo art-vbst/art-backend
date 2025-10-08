@@ -29,7 +29,6 @@ VALUES (
     )
 RETURNING *;
 
-
 -- name: GetArtwork :one
 SELECT a.*,
     i.*
@@ -48,7 +47,6 @@ FROM artworks a
     ) i ON true
 WHERE a.id = $1;
 
-
 -- name: GetArtworkWithImages :many
 SELECT a.*,
     i.id as image_id,
@@ -61,7 +59,6 @@ FROM artworks a
     LEFT JOIN images i ON a.id = i.artwork_id
 WHERE a.id = $1
 ORDER BY i.created_at;
-
 
 -- name: GetStripeDataByArtworkIDs :many
 SELECT a.id,
@@ -78,8 +75,7 @@ FROM artworks a
             created_at
         LIMIT 1
     ) i ON true
-WHERE a.id = ANY($1::uuid[]);
-
+WHERE a.id = ANY($1::uuid []);
 
 -- name: ListArtworks :many
 SELECT a.*,
