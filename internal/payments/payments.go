@@ -7,16 +7,16 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/talmage89/art-backend/internal/config"
-	"github.com/talmage89/art-backend/internal/db"
+	"github.com/talmage89/art-backend/internal/platform/config"
+	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
 type PaymentsHandler struct {
-	queries db.Querier
+	queries generated.Querier
 	config  *config.Config
 }
 
-func NewPaymentsHandler(config *config.Config, queries db.Querier) *PaymentsHandler {
+func NewPaymentsHandler(config *config.Config, queries generated.Querier) *PaymentsHandler {
 	return &PaymentsHandler{
 		config:  config,
 		queries: queries,

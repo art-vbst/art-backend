@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stripe/stripe-go/v83"
 	"github.com/stripe/stripe-go/v83/checkout/session"
-	"github.com/talmage89/art-backend/internal/config"
-	"github.com/talmage89/art-backend/internal/db"
+	"github.com/talmage89/art-backend/internal/platform/config"
+	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
 var (
@@ -33,11 +33,11 @@ type CheckoutResult struct {
 }
 
 type CheckoutService struct {
-	queries db.Querier
+	queries generated.Querier
 	config  *config.Config
 }
 
-func NewCheckoutService(queries db.Querier, config *config.Config) *CheckoutService {
+func NewCheckoutService(queries generated.Querier, config *config.Config) *CheckoutService {
 	return &CheckoutService{
 		queries: queries,
 		config:  config,
@@ -99,7 +99,7 @@ func (s *CheckoutService) parseUUIDs(stringIds []string) ([]pgtype.UUID, error) 
 	return ids, nil
 }
 
-func (s *CheckoutService) fetchArtworkData(ctx context.Context, artworkIds []pgtype.UUID) ([]db.GetStripeDataByArtworkIDsRow, error) {
+func (s *CheckoutService) fetchArtworkData(ctx context.Context, artworkIds []pgtype.UUID) ([]generated.GetStripeDataByArtworkIDsRow, error) {
 	rows, err := s.queries.GetStripeDataByArtworkIDs(ctx, artworkIds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch artworks: %w", err)
@@ -112,7 +112,7 @@ func (s *CheckoutService) fetchArtworkData(ctx context.Context, artworkIds []pgt
 	return rows, nil
 }
 
-func (s *CheckoutService) createStripeSession(artworkData []db.GetStripeDataByArtworkIDsRow, artworkIds []pgtype.UUID) (*stripe.CheckoutSession, error) {
+func (s *CheckoutService) createStripeSession(artworkData []generated.GetStripeDataByArtworkIDsRow, artworkIds []pgtype.UUID) (*stripe.CheckoutSession, error) {
 	stripe.Key = s.config.StripeSecretKey
 
 	lineItems := s.buildLineItems(artworkData)
@@ -139,7 +139,7 @@ func (s *CheckoutService) createStripeSession(artworkData []db.GetStripeDataByAr
 	return stripeSession, nil
 }
 
-func (s *CheckoutService) buildLineItems(artworkData []db.GetStripeDataByArtworkIDsRow) []*stripe.CheckoutSessionLineItemParams {
+func (s *CheckoutService) buildLineItems(artworkData []generated.GetStripeDataByArtworkIDsRow) []*stripe.CheckoutSessionLineItemParams {
 	lineItems := make([]*stripe.CheckoutSessionLineItemParams, 0, len(artworkData))
 
 	for _, artwork := range artworkData {

@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/stripe/stripe-go/v83"
-	"github.com/talmage89/art-backend/internal/config"
-	"github.com/talmage89/art-backend/internal/db"
+	"github.com/talmage89/art-backend/internal/platform/config"
+	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
 var (
@@ -15,11 +15,11 @@ var (
 )
 
 type WebhookService struct {
-	queries db.Querier
+	queries generated.Querier
 	config  *config.Config
 }
 
-func NewWebhokService(queries db.Querier, config *config.Config) *WebhookService {
+func NewWebhokService(queries generated.Querier, config *config.Config) *WebhookService {
 	return &WebhookService{
 		queries: queries,
 		config:  config,

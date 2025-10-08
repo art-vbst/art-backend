@@ -1,4 +1,4 @@
-package api
+package artwork
 
 import (
 	"encoding/json"
@@ -9,15 +9,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/talmage89/art-backend/internal/db"
+	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
-func NewArtworkHandler(queries db.Querier) *ArtworkHandler {
+func NewArtworkHandler(queries generated.Querier) *ArtworkHandler {
 	return &ArtworkHandler{queries: queries}
 }
 
 type ArtworkHandler struct {
-	queries db.Querier
+	queries generated.Querier
 }
 
 func (h *ArtworkHandler) Routes() chi.Router {
@@ -39,7 +39,7 @@ type Image struct {
 }
 
 type ArtworkListResponse struct {
-	db.ListArtworksRow
+	generated.ListArtworksRow
 	Images []Image `json:"images"`
 }
 
@@ -83,7 +83,7 @@ func (h *ArtworkHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 type ArtworkDetailResponse struct {
-	db.GetArtworkWithImagesRow
+	generated.GetArtworkWithImagesRow
 	Images []Image `json:"images"`
 }
 
@@ -155,7 +155,7 @@ func (h *ArtworkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artwork, err := h.queries.CreateArtwork(r.Context(), db.CreateArtworkParams{
+	artwork, err := h.queries.CreateArtwork(r.Context(), generated.CreateArtworkParams{
 		Title:          req.Title,
 		PaintingNumber: nil,
 		PaintingYear:   req.Year,
@@ -165,16 +165,16 @@ func (h *ArtworkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Paper:          nil,
 		SortOrder:      nil,
 		SoldAt:         pgtype.Timestamp{},
-		Status:         db.ArtworkStatusAvailable,
-		Medium:         db.ArtworkMediumAcrylicPanel,
-		Category:       db.ArtworkCategoryFigure,
+		Status:         generated.ArtworkStatusAvailable,
+		Medium:         generated.ArtworkMediumAcrylicPanel,
+		Category:       generated.ArtworkCategoryFigure,
 	})
 	if err != nil {
 		http.Error(w, "Failed to create artwork", http.StatusInternalServerError)
 		return
 	}
 
-	image, err := h.queries.CreateImage(r.Context(), db.CreateImageParams{
+	image, err := h.queries.CreateImage(r.Context(), generated.CreateImageParams{
 		ArtworkID:   artwork.ID,
 		ImageUrl:    req.ImageURL,
 		ImageWidth:  req.ImageWidth,
@@ -186,8 +186,8 @@ func (h *ArtworkHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := struct {
-		Artwork db.Artwork `json:"artwork"`
-		Image   db.Image   `json:"image"`
+		Artwork generated.Artwork `json:"artwork"`
+		Image   generated.Image   `json:"image"`
 	}{
 		Artwork: artwork,
 		Image:   image,
