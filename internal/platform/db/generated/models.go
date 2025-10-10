@@ -153,7 +153,7 @@ const (
 	OrderStatusShipped    OrderStatus = "shipped"
 	OrderStatusCompleted  OrderStatus = "completed"
 	OrderStatusFailed     OrderStatus = "failed"
-	OrderStatusRefunded   OrderStatus = "refunded"
+	OrderStatusCanceled   OrderStatus = "canceled"
 )
 
 func (e *OrderStatus) Scan(src interface{}) error {
@@ -194,9 +194,9 @@ func (ns NullOrderStatus) Value() (driver.Value, error) {
 type PaymentStatus string
 
 const (
-	PaymentStatusSucceeded PaymentStatus = "succeeded"
-	PaymentStatusFailed    PaymentStatus = "failed"
-	PaymentStatusRefunded  PaymentStatus = "refunded"
+	PaymentStatusSuccess  PaymentStatus = "success"
+	PaymentStatusFailed   PaymentStatus = "failed"
+	PaymentStatusRefunded PaymentStatus = "refunded"
 )
 
 func (e *PaymentStatus) Scan(src interface{}) error {
@@ -264,35 +264,41 @@ type Image struct {
 }
 
 type Order struct {
-	ID                    pgtype.UUID      `db:"id" json:"id"`
-	StripeSessionID       *string          `db:"stripe_session_id" json:"stripe_session_id"`
-	StripePaymentIntentID *string          `db:"stripe_payment_intent_id" json:"stripe_payment_intent_id"`
-	CustomerEmail         string           `db:"customer_email" json:"customer_email"`
-	ShippingRateID        string           `db:"shipping_rate_id" json:"shipping_rate_id"`
-	ShippingName          string           `db:"shipping_name" json:"shipping_name"`
-	ShippingAddressLine1  string           `db:"shipping_address_line1" json:"shipping_address_line1"`
-	ShippingAddressLine2  *string          `db:"shipping_address_line2" json:"shipping_address_line2"`
-	ShippingCity          string           `db:"shipping_city" json:"shipping_city"`
-	ShippingPostalCode    string           `db:"shipping_postal_code" json:"shipping_postal_code"`
-	ShippingState         string           `db:"shipping_state" json:"shipping_state"`
-	ShippingCountry       string           `db:"shipping_country" json:"shipping_country"`
-	SubtotalCents         int32            `db:"subtotal_cents" json:"subtotal_cents"`
-	ShippingCents         int32            `db:"shipping_cents" json:"shipping_cents"`
-	TotalCents            int32            `db:"total_cents" json:"total_cents"`
-	Currency              string           `db:"currency" json:"currency"`
-	Status                OrderStatus      `db:"status" json:"status"`
-	CreatedAt             pgtype.Timestamp `db:"created_at" json:"created_at"`
+	ID              pgtype.UUID      `db:"id" json:"id"`
+	StripeSessionID string           `db:"stripe_session_id" json:"stripe_session_id"`
+	Status          OrderStatus      `db:"status" json:"status"`
+	CreatedAt       pgtype.Timestamp `db:"created_at" json:"created_at"`
 }
 
 type Payment struct {
 	ID                    pgtype.UUID      `db:"id" json:"id"`
 	OrderID               pgtype.UUID      `db:"order_id" json:"order_id"`
 	StripePaymentIntentID string           `db:"stripe_payment_intent_id" json:"stripe_payment_intent_id"`
-	SubtotalCents         int32            `db:"subtotal_cents" json:"subtotal_cents"`
-	ShippingCents         int32            `db:"shipping_cents" json:"shipping_cents"`
-	ShippingStripeID      string           `db:"shipping_stripe_id" json:"shipping_stripe_id"`
+	Status                PaymentStatus    `db:"status" json:"status"`
 	TotalCents            int32            `db:"total_cents" json:"total_cents"`
 	Currency              string           `db:"currency" json:"currency"`
-	Status                PaymentStatus    `db:"status" json:"status"`
 	CreatedAt             pgtype.Timestamp `db:"created_at" json:"created_at"`
+	PaidAt                pgtype.Timestamp `db:"paid_at" json:"paid_at"`
+}
+
+type PaymentRequirement struct {
+	ID            pgtype.UUID `db:"id" json:"id"`
+	OrderID       pgtype.UUID `db:"order_id" json:"order_id"`
+	SubtotalCents int32       `db:"subtotal_cents" json:"subtotal_cents"`
+	ShippingCents int32       `db:"shipping_cents" json:"shipping_cents"`
+	TotalCents    int32       `db:"total_cents" json:"total_cents"`
+	Currency      string      `db:"currency" json:"currency"`
+}
+
+type ShippingDetail struct {
+	ID      pgtype.UUID `db:"id" json:"id"`
+	OrderID pgtype.UUID `db:"order_id" json:"order_id"`
+	Email   string      `db:"email" json:"email"`
+	Name    string      `db:"name" json:"name"`
+	Line1   string      `db:"line1" json:"line1"`
+	Line2   *string     `db:"line2" json:"line2"`
+	City    string      `db:"city" json:"city"`
+	State   string      `db:"state" json:"state"`
+	Postal  string      `db:"postal" json:"postal"`
+	Country string      `db:"country" json:"country"`
 }

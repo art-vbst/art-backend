@@ -13,22 +13,10 @@ import (
 type Querier interface {
 	CreateArtwork(ctx context.Context, arg CreateArtworkParams) (Artwork, error)
 	CreateImage(ctx context.Context, arg CreateImageParams) (Image, error)
-	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
-	CreatePayment(ctx context.Context, arg CreatePaymentParams) (Payment, error)
 	GetArtwork(ctx context.Context, id pgtype.UUID) (GetArtworkRow, error)
 	GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]GetArtworkWithImagesRow, error)
-	GetOrderByID(ctx context.Context, id pgtype.UUID) (Order, error)
-	GetOrderByStripePaymentIntentID(ctx context.Context, stripePaymentIntentID *string) (Order, error)
-	GetOrderByStripeSessionID(ctx context.Context, stripeSessionID *string) (Order, error)
-	GetPaymentByID(ctx context.Context, id pgtype.UUID) (Payment, error)
-	GetPaymentByOrderID(ctx context.Context, orderID pgtype.UUID) (Payment, error)
-	GetPaymentByStripePaymentIntentID(ctx context.Context, stripePaymentIntentID string) (Payment, error)
 	GetStripeDataByArtworkIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]GetStripeDataByArtworkIDsRow, error)
 	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
-	ListOrders(ctx context.Context) ([]Order, error)
-	ListPayments(ctx context.Context) ([]Payment, error)
-	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
-	UpdatePaymentStatus(ctx context.Context, arg UpdatePaymentStatusParams) (Payment, error)
 }
 
 var _ Querier = (*Queries)(nil)
