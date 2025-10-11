@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	Port            string
-	DbUrl           string
-	FrontendUrl     string
-	StripeSecretKey string
+	Port                string
+	DbUrl               string
+	FrontendUrl         string
+	StripeSecret        string
+	StripeWebhookSecret string
 }
 
 func Load() *Config {
@@ -21,10 +22,11 @@ func Load() *Config {
 	}
 
 	config := Config{
-		Port:            os.Getenv("PORT"),
-		DbUrl:           os.Getenv("DB_URL"),
-		FrontendUrl:     os.Getenv("FRONTEND_URL"),
-		StripeSecretKey: os.Getenv("STRIPE_SECRET_KEY"),
+		Port:                os.Getenv("PORT"),
+		DbUrl:               os.Getenv("DB_URL"),
+		FrontendUrl:         os.Getenv("FRONTEND_URL"),
+		StripeSecret:        os.Getenv("STRIPE_SECRET"),
+		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 	}
 
 	typ := reflect.TypeOf(config)

@@ -6,7 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/talmage89/art-backend/internal/artwork/transport"
+	artwork "github.com/talmage89/art-backend/internal/artwork/transport"
+	payments "github.com/talmage89/art-backend/internal/payments/transport"
 	"github.com/talmage89/art-backend/internal/platform/config"
 	"github.com/talmage89/art-backend/internal/platform/db/store"
 )
@@ -50,9 +51,12 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 }
 
 func (s *RouterService) registerRoutes(r *chi.Mux) {
-	artworkHandler := transport.NewArtworkHandler(s.db)
-	r.Mount("/artwork", artworkHandler.Routes())
+	artworkHandler := artwork.NewArtworkHandler(s.db)
+	r.Mount("/artworks", artworkHandler.Routes())
 
-	checkoutHandler := transport.NewCheckoutHandler(s.db, s.config)
+	checkoutHandler := artwork.NewCheckoutHandler(s.db, s.config)
 	r.Mount("/checkout", checkoutHandler.Routes())
+
+	webhookHandler := payments.NewWebhookHandler(s.db, s.config)
+	r.Mount("/stripe/webhook", webhookHandler.Routes())
 }

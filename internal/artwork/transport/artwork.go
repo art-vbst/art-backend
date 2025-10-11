@@ -23,12 +23,12 @@ func NewArtworkHandler(db *store.Store) *ArtworkHandler {
 
 func (h *ArtworkHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", h.List)
-	r.Get("/{id}", h.Detail)
+	r.Get("/", h.list)
+	r.Get("/{id}", h.detail)
 	return r
 }
 
-func (h *ArtworkHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *ArtworkHandler) list(w http.ResponseWriter, r *http.Request) {
 	artworks, err := h.service.List(r.Context())
 	if err != nil {
 		handleArtworkServiceError(w, err)
@@ -38,7 +38,7 @@ func (h *ArtworkHandler) List(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusOK, artworks)
 }
 
-func (h *ArtworkHandler) Detail(w http.ResponseWriter, r *http.Request) {
+func (h *ArtworkHandler) detail(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	artwork, err := h.service.Detail(r.Context(), id)

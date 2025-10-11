@@ -25,7 +25,7 @@ func NewCheckoutHandler(db *store.Store, config *config.Config) *CheckoutHandler
 
 func (h *CheckoutHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", h.HandleCheckout)
+	r.Post("/", h.handleCheckout)
 	return r
 }
 
@@ -33,7 +33,7 @@ type CheckoutRequest struct {
 	ArtworkIds []string `json:"artwork_ids"`
 }
 
-func (h *CheckoutHandler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
+func (h *CheckoutHandler) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	var req CheckoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")

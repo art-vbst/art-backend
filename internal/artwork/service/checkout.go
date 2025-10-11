@@ -51,12 +51,12 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, artworkIdSt
 		return nil, err
 	}
 
-	stripeSession, err := s.createStripeSession(artworks, artworkIds)
+	session, err := s.createCheckoutSession(artworks, artworkIds)
 	if err != nil {
 		return nil, err
 	}
 
-	return &stripeSession.URL, nil
+	return &session.URL, nil
 }
 
 func (s *CheckoutService) validateRequest(artworkIds []string) error {
@@ -99,9 +99,7 @@ func (s *CheckoutService) fetchArtworkData(ctx context.Context, artworkIds []uui
 	return rows, nil
 }
 
-func (s *CheckoutService) createStripeSession(artworks []domain.Artwork, artworkIds []uuid.UUID) (*stripe.CheckoutSession, error) {
-	stripe.Key = s.config.StripeSecretKey
-
+func (s *CheckoutService) createCheckoutSession(artworks []domain.Artwork, artworkIds []uuid.UUID) (*stripe.CheckoutSession, error) {
 	lineItems := s.buildLineItems(artworks)
 
 	metadata, err := s.buildMetadata(artworkIds)
@@ -117,13 +115,14 @@ func (s *CheckoutService) createStripeSession(artworks []domain.Artwork, artwork
 		Metadata:   metadata,
 	}
 
-	stripeSession, err := session.New(params)
+	stripe.Key = s.config.StripeSecret
+	session, err := session.New(params)
 	if err != nil {
 		log.Printf("stripe session creation failed: %v", err)
 		return nil, fmt.Errorf("failed to create stripe session: %w", err)
 	}
 
-	return stripeSession, nil
+	return session, nil
 }
 
 func (s *CheckoutService) buildLineItems(artworks []domain.Artwork) []*stripe.CheckoutSessionLineItemParams {

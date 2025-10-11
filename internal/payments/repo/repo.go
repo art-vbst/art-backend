@@ -7,7 +7,7 @@ import (
 	"github.com/talmage89/art-backend/internal/platform/db/store"
 )
 
-type PaymentsRepo interface {
+type Repo interface {
 	CreateOrder(ctx context.Context, order domain.Order) (domain.Order, error)
 }
 
