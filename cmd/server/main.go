@@ -7,6 +7,7 @@ import (
 
 	"github.com/talmage89/art-backend/internal/platform/config"
 	"github.com/talmage89/art-backend/internal/platform/db/pooler"
+	"github.com/talmage89/art-backend/internal/platform/db/store"
 	"github.com/talmage89/art-backend/internal/platform/router"
 )
 
@@ -14,10 +15,12 @@ func main() {
 	ctx := context.Background()
 	config := config.Load()
 
-	queries, pool := pooler.GetDbConnectionPool(ctx, config)
+	pool := pooler.GetDbConnectionPool(ctx, config)
 	defer pool.Close()
 
-	r := router.NewRouterService(config, queries).CreateRouter()
+	store := store.New(pool)
+
+	r := router.New(store, config).CreateRouter()
 
 	log.Printf("Server starting on :%s", config.Port)
 	if err := http.ListenAndServe(":"+config.Port, r); err != nil {

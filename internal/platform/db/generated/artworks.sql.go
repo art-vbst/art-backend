@@ -8,6 +8,7 @@ package generated
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -114,7 +115,7 @@ WHERE a.id = $1
 `
 
 type GetArtworkRow struct {
-	ID             pgtype.UUID      `db:"id" json:"id"`
+	ID             uuid.UUID        `db:"id" json:"id"`
 	Title          string           `db:"title" json:"title"`
 	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
@@ -129,14 +130,14 @@ type GetArtworkRow struct {
 	Category       ArtworkCategory  `db:"category" json:"category"`
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
-	ImageID        pgtype.UUID      `db:"image_id" json:"image_id"`
+	ImageID        uuid.UUID        `db:"image_id" json:"image_id"`
 	ImageUrl       string           `db:"image_url" json:"image_url"`
 	ImageWidth     *int32           `db:"image_width" json:"image_width"`
 	ImageHeight    *int32           `db:"image_height" json:"image_height"`
 	ImageCreatedAt pgtype.Timestamp `db:"image_created_at" json:"image_created_at"`
 }
 
-func (q *Queries) GetArtwork(ctx context.Context, id pgtype.UUID) (GetArtworkRow, error) {
+func (q *Queries) GetArtwork(ctx context.Context, id uuid.UUID) (GetArtworkRow, error) {
 	row := q.db.QueryRow(ctx, getArtwork, id)
 	var i GetArtworkRow
 	err := row.Scan(
@@ -179,7 +180,7 @@ ORDER BY i.created_at
 `
 
 type GetArtworkWithImagesRow struct {
-	ID             pgtype.UUID      `db:"id" json:"id"`
+	ID             uuid.UUID        `db:"id" json:"id"`
 	Title          string           `db:"title" json:"title"`
 	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
@@ -202,7 +203,7 @@ type GetArtworkWithImagesRow struct {
 	ImageCreatedAt pgtype.Timestamp `db:"image_created_at" json:"image_created_at"`
 }
 
-func (q *Queries) GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]GetArtworkWithImagesRow, error) {
+func (q *Queries) GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error) {
 	rows, err := q.db.Query(ctx, getArtworkWithImages, id)
 	if err != nil {
 		return nil, err
@@ -263,14 +264,14 @@ WHERE a.id = ANY($1::uuid [])
 `
 
 type GetStripeDataByArtworkIDsRow struct {
-	ID         pgtype.UUID `db:"id" json:"id"`
-	Title      string      `db:"title" json:"title"`
-	PriceCents int32       `db:"price_cents" json:"price_cents"`
-	ImageID    pgtype.UUID `db:"image_id" json:"image_id"`
-	ImageUrl   string      `db:"image_url" json:"image_url"`
+	ID         uuid.UUID `db:"id" json:"id"`
+	Title      string    `db:"title" json:"title"`
+	PriceCents int32     `db:"price_cents" json:"price_cents"`
+	ImageID    uuid.UUID `db:"image_id" json:"image_id"`
+	ImageUrl   string    `db:"image_url" json:"image_url"`
 }
 
-func (q *Queries) GetStripeDataByArtworkIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]GetStripeDataByArtworkIDsRow, error) {
+func (q *Queries) GetStripeDataByArtworkIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetStripeDataByArtworkIDsRow, error) {
 	rows, err := q.db.Query(ctx, getStripeDataByArtworkIDs, dollar_1)
 	if err != nil {
 		return nil, err
@@ -317,7 +318,7 @@ ORDER BY a.sort_order,
 `
 
 type ListArtworksRow struct {
-	ID             pgtype.UUID      `db:"id" json:"id"`
+	ID             uuid.UUID        `db:"id" json:"id"`
 	Title          string           `db:"title" json:"title"`
 	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
@@ -332,7 +333,7 @@ type ListArtworksRow struct {
 	Category       ArtworkCategory  `db:"category" json:"category"`
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
-	ImageID        pgtype.UUID      `db:"image_id" json:"image_id"`
+	ImageID        uuid.UUID        `db:"image_id" json:"image_id"`
 	ImageUrl       string           `db:"image_url" json:"image_url"`
 	ImageWidth     *int32           `db:"image_width" json:"image_width"`
 	ImageHeight    *int32           `db:"image_height" json:"image_height"`

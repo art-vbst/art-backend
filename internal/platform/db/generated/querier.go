@@ -7,15 +7,16 @@ package generated
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreateArtwork(ctx context.Context, arg CreateArtworkParams) (Artwork, error)
 	CreateImage(ctx context.Context, arg CreateImageParams) (Image, error)
-	GetArtwork(ctx context.Context, id pgtype.UUID) (GetArtworkRow, error)
-	GetArtworkWithImages(ctx context.Context, id pgtype.UUID) ([]GetArtworkWithImagesRow, error)
-	GetStripeDataByArtworkIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]GetStripeDataByArtworkIDsRow, error)
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error)
+	GetArtwork(ctx context.Context, id uuid.UUID) (GetArtworkRow, error)
+	GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error)
+	GetStripeDataByArtworkIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetStripeDataByArtworkIDsRow, error)
 	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
 }
 

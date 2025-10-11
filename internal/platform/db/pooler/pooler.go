@@ -7,10 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/talmage89/art-backend/internal/platform/config"
-	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
-func GetDbConnectionPool(ctx context.Context, env *config.Config) (*generated.Queries, *pgxpool.Pool) {
+func GetDbConnectionPool(ctx context.Context, env *config.Config) *pgxpool.Pool {
 	poolConfig, err := pgxpool.ParseConfig(env.DbUrl)
 	if err != nil {
 		log.Fatal(err)
@@ -31,7 +30,5 @@ func GetDbConnectionPool(ctx context.Context, env *config.Config) (*generated.Qu
 		log.Fatal(err)
 	}
 
-	queries := generated.New(pool)
-
-	return queries, pool
+	return pool
 }

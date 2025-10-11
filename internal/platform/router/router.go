@@ -6,21 +6,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	api "github.com/talmage89/art-backend/internal/artwork"
-	"github.com/talmage89/art-backend/internal/payments"
+	"github.com/talmage89/art-backend/internal/artwork/transport"
 	"github.com/talmage89/art-backend/internal/platform/config"
-	"github.com/talmage89/art-backend/internal/platform/db/generated"
+	"github.com/talmage89/art-backend/internal/platform/db/store"
 )
 
 type RouterService struct {
-	config  *config.Config
-	queries generated.Querier
+	db     *store.Store
+	config *config.Config
 }
 
-func NewRouterService(config *config.Config, queries generated.Querier) *RouterService {
+func New(db *store.Store, config *config.Config) *RouterService {
 	return &RouterService{
-		config:  config,
-		queries: queries,
+		db:     db,
+		config: config,
 	}
 }
 
@@ -51,9 +50,9 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 }
 
 func (s *RouterService) registerRoutes(r *chi.Mux) {
-	artworkHandler := api.NewArtworkHandler(s.queries)
+	artworkHandler := transport.NewArtworkHandler(s.db)
 	r.Mount("/artwork", artworkHandler.Routes())
 
-	paymentsHandler := payments.NewPaymentsHandler(s.config, s.queries)
-	r.Mount("/stripe", paymentsHandler.Routes())
+	checkoutHandler := transport.NewCheckoutHandler(s.db, s.config)
+	r.Mount("/checkout", checkoutHandler.Routes())
 }

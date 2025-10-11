@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -235,7 +236,7 @@ func (ns NullPaymentStatus) Value() (driver.Value, error) {
 }
 
 type Artwork struct {
-	ID             pgtype.UUID      `db:"id" json:"id"`
+	ID             uuid.UUID        `db:"id" json:"id"`
 	Title          string           `db:"title" json:"title"`
 	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
 	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
@@ -253,7 +254,7 @@ type Artwork struct {
 }
 
 type Image struct {
-	ID          pgtype.UUID      `db:"id" json:"id"`
+	ID          uuid.UUID        `db:"id" json:"id"`
 	ArtworkID   pgtype.UUID      `db:"artwork_id" json:"artwork_id"`
 	IsMainImage *bool            `db:"is_main_image" json:"is_main_image"`
 	ImageUrl    string           `db:"image_url" json:"image_url"`
@@ -264,15 +265,15 @@ type Image struct {
 }
 
 type Order struct {
-	ID              pgtype.UUID      `db:"id" json:"id"`
+	ID              uuid.UUID        `db:"id" json:"id"`
 	StripeSessionID string           `db:"stripe_session_id" json:"stripe_session_id"`
 	Status          OrderStatus      `db:"status" json:"status"`
 	CreatedAt       pgtype.Timestamp `db:"created_at" json:"created_at"`
 }
 
 type Payment struct {
-	ID                    pgtype.UUID      `db:"id" json:"id"`
-	OrderID               pgtype.UUID      `db:"order_id" json:"order_id"`
+	ID                    uuid.UUID        `db:"id" json:"id"`
+	OrderID               uuid.UUID        `db:"order_id" json:"order_id"`
 	StripePaymentIntentID string           `db:"stripe_payment_intent_id" json:"stripe_payment_intent_id"`
 	Status                PaymentStatus    `db:"status" json:"status"`
 	TotalCents            int32            `db:"total_cents" json:"total_cents"`
@@ -282,23 +283,23 @@ type Payment struct {
 }
 
 type PaymentRequirement struct {
-	ID            pgtype.UUID `db:"id" json:"id"`
-	OrderID       pgtype.UUID `db:"order_id" json:"order_id"`
-	SubtotalCents int32       `db:"subtotal_cents" json:"subtotal_cents"`
-	ShippingCents int32       `db:"shipping_cents" json:"shipping_cents"`
-	TotalCents    int32       `db:"total_cents" json:"total_cents"`
-	Currency      string      `db:"currency" json:"currency"`
+	ID            uuid.UUID `db:"id" json:"id"`
+	OrderID       uuid.UUID `db:"order_id" json:"order_id"`
+	SubtotalCents int32     `db:"subtotal_cents" json:"subtotal_cents"`
+	ShippingCents int32     `db:"shipping_cents" json:"shipping_cents"`
+	TotalCents    int32     `db:"total_cents" json:"total_cents"`
+	Currency      string    `db:"currency" json:"currency"`
 }
 
 type ShippingDetail struct {
-	ID      pgtype.UUID `db:"id" json:"id"`
-	OrderID pgtype.UUID `db:"order_id" json:"order_id"`
-	Email   string      `db:"email" json:"email"`
-	Name    string      `db:"name" json:"name"`
-	Line1   string      `db:"line1" json:"line1"`
-	Line2   *string     `db:"line2" json:"line2"`
-	City    string      `db:"city" json:"city"`
-	State   string      `db:"state" json:"state"`
-	Postal  string      `db:"postal" json:"postal"`
-	Country string      `db:"country" json:"country"`
+	ID      uuid.UUID `db:"id" json:"id"`
+	OrderID uuid.UUID `db:"order_id" json:"order_id"`
+	Email   string    `db:"email" json:"email"`
+	Name    string    `db:"name" json:"name"`
+	Line1   string    `db:"line1" json:"line1"`
+	Line2   *string   `db:"line2" json:"line2"`
+	City    string    `db:"city" json:"city"`
+	State   string    `db:"state" json:"state"`
+	Postal  string    `db:"postal" json:"postal"`
+	Country string    `db:"country" json:"country"`
 }

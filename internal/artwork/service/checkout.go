@@ -1,4 +1,4 @@
-package payments
+package service
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stripe/stripe-go/v83"
 	"github.com/stripe/stripe-go/v83/checkout/session"
+	"github.com/talmage89/art-backend/internal/artwork/domain"
+	"github.com/talmage89/art-backend/internal/artwork/repo"
 	"github.com/talmage89/art-backend/internal/platform/config"
-	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
 var (
@@ -22,29 +22,21 @@ var (
 	ErrTooManyItems     = errors.New("too many items in cart")
 )
 
-const MaxCheckoutItems = 50
-
-type CheckoutRequest struct {
-	ArtworkIds []string `json:"artwork_ids"`
-}
-
-type CheckoutResult struct {
-	URL string `json:"url"`
-}
-
 type CheckoutService struct {
-	queries generated.Querier
-	config  *config.Config
+	repo   repo.Repo
+	config *config.Config
 }
 
-func NewCheckoutService(queries generated.Querier, config *config.Config) *CheckoutService {
+func NewCheckoutService(repo repo.Repo, config *config.Config) *CheckoutService {
 	return &CheckoutService{
-		queries: queries,
-		config:  config,
+		repo:   repo,
+		config: config,
 	}
 }
 
-func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, artworkIdStrings []string) (*CheckoutResult, error) {
+const MaxCheckoutItems = 50
+
+func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, artworkIdStrings []string) (*string, error) {
 	if err := s.validateRequest(artworkIdStrings); err != nil {
 		return nil, err
 	}
@@ -54,17 +46,17 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, artworkIdSt
 		return nil, err
 	}
 
-	artworkData, err := s.fetchArtworkData(ctx, artworkIds)
+	artworks, err := s.fetchArtworkData(ctx, artworkIds)
 	if err != nil {
 		return nil, err
 	}
 
-	stripeSession, err := s.createStripeSession(artworkData, artworkIds)
+	stripeSession, err := s.createStripeSession(artworks, artworkIds)
 	if err != nil {
 		return nil, err
 	}
 
-	return &CheckoutResult{URL: stripeSession.URL}, nil
+	return &stripeSession.URL, nil
 }
 
 func (s *CheckoutService) validateRequest(artworkIds []string) error {
@@ -79,18 +71,13 @@ func (s *CheckoutService) validateRequest(artworkIds []string) error {
 	return nil
 }
 
-func (s *CheckoutService) parseUUIDs(stringIds []string) ([]pgtype.UUID, error) {
-	ids := make([]pgtype.UUID, 0, len(stringIds))
+func (s *CheckoutService) parseUUIDs(stringIds []string) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, 0, len(stringIds))
 
 	for _, idString := range stringIds {
-		parsedUUID, err := uuid.Parse(idString)
+		id, err := uuid.Parse(idString)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrInvalidUUIDs, idString)
-		}
-
-		id := pgtype.UUID{
-			Bytes: parsedUUID,
-			Valid: true,
 		}
 
 		ids = append(ids, id)
@@ -99,8 +86,8 @@ func (s *CheckoutService) parseUUIDs(stringIds []string) ([]pgtype.UUID, error) 
 	return ids, nil
 }
 
-func (s *CheckoutService) fetchArtworkData(ctx context.Context, artworkIds []pgtype.UUID) ([]generated.GetStripeDataByArtworkIDsRow, error) {
-	rows, err := s.queries.GetStripeDataByArtworkIDs(ctx, artworkIds)
+func (s *CheckoutService) fetchArtworkData(ctx context.Context, artworkIds []uuid.UUID) ([]domain.Artwork, error) {
+	rows, err := s.repo.GetArtworkCheckoutData(ctx, artworkIds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch artworks: %w", err)
 	}
@@ -112,10 +99,10 @@ func (s *CheckoutService) fetchArtworkData(ctx context.Context, artworkIds []pgt
 	return rows, nil
 }
 
-func (s *CheckoutService) createStripeSession(artworkData []generated.GetStripeDataByArtworkIDsRow, artworkIds []pgtype.UUID) (*stripe.CheckoutSession, error) {
+func (s *CheckoutService) createStripeSession(artworks []domain.Artwork, artworkIds []uuid.UUID) (*stripe.CheckoutSession, error) {
 	stripe.Key = s.config.StripeSecretKey
 
-	lineItems := s.buildLineItems(artworkData)
+	lineItems := s.buildLineItems(artworks)
 
 	metadata, err := s.buildMetadata(artworkIds)
 	if err != nil {
@@ -139,13 +126,18 @@ func (s *CheckoutService) createStripeSession(artworkData []generated.GetStripeD
 	return stripeSession, nil
 }
 
-func (s *CheckoutService) buildLineItems(artworkData []generated.GetStripeDataByArtworkIDsRow) []*stripe.CheckoutSessionLineItemParams {
-	lineItems := make([]*stripe.CheckoutSessionLineItemParams, 0, len(artworkData))
+func (s *CheckoutService) buildLineItems(artworks []domain.Artwork) []*stripe.CheckoutSessionLineItemParams {
+	lineItems := make([]*stripe.CheckoutSessionLineItemParams, 0, len(artworks))
 
-	for _, artwork := range artworkData {
+	for _, artwork := range artworks {
+		imageURL := ""
+		if len(artwork.Images) > 0 {
+			imageURL = artwork.Images[0].ImageURL
+		}
+
 		productData := stripe.CheckoutSessionLineItemPriceDataProductDataParams{
 			Name:   stripe.String(artwork.Title),
-			Images: stripe.StringSlice([]string{artwork.ImageUrl}),
+			Images: stripe.StringSlice([]string{imageURL}),
 		}
 
 		priceData := stripe.CheckoutSessionLineItemPriceDataParams{
@@ -165,7 +157,7 @@ func (s *CheckoutService) buildLineItems(artworkData []generated.GetStripeDataBy
 	return lineItems
 }
 
-func (s *CheckoutService) buildMetadata(artworkIds []pgtype.UUID) (map[string]string, error) {
+func (s *CheckoutService) buildMetadata(artworkIds []uuid.UUID) (map[string]string, error) {
 	artworkIdsJSON, err := json.Marshal(artworkIds)
 	if err != nil {
 		return nil, err
