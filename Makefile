@@ -47,7 +47,7 @@ migrate-create:
 		exit 1; \
 	fi
 	@echo "Creating migration: $(name)"
-	migrate create -ext sql -dir internal/platform/db/migrations -seq $(name)
+	migrate create -ext sql -dir internal/platform/db/schema/migrations -seq $(name)
 
 migrate-up:
 	@echo "Running migrations up..."
@@ -55,7 +55,7 @@ migrate-up:
 		echo "Error: DB_URL environment variable is not set"; \
 		exit 1; \
 	fi
-	migrate -path internal/platform/db/migrations -database "$(DB_URL)" up
+	migrate -path internal/platform/db/schema/migrations -database "$(DB_URL)" up
 
 migrate-down:
 	@echo "Rolling back migration..."
@@ -63,7 +63,7 @@ migrate-down:
 		echo "Error: DB_URL environment variable is not set"; \
 		exit 1; \
 	fi
-	migrate -path internal/platform/db/migrations -database "$(DB_URL)" down 1
+	migrate -path internal/platform/db/schema/migrations -database "$(DB_URL)" down 1
 
 migrate-reset:
 	@echo "WARNING: This will drop all migrations and re-apply them!"
@@ -74,9 +74,9 @@ migrate-reset:
 		exit 1; \
 	fi
 	@echo "Dropping all migrations..."
-	migrate -path internal/platform/db/migrations -database "$(DB_URL)" down -all || true
+	migrate -path internal/platform/db/schema/migrations -database "$(DB_URL)" down -all || true
 	@echo "Re-applying all migrations..."
-	migrate -path internal/platform/db/migrations -database "$(DB_URL)" up
+	migrate -path internal/platform/db/schema/migrations -database "$(DB_URL)" up
 
 migrate-status:
 	@echo "Migration status..."
@@ -84,7 +84,7 @@ migrate-status:
 		echo "Error: DB_URL environment variable is not set"; \
 		exit 1; \
 	fi
-	migrate -path internal/platform/db/migrations -database "$(DB_URL)" version
+	migrate -path internal/platform/db/schema/migrations -database "$(DB_URL)" version
 
 migrate-force:
 	@if [ -z "$(version)" ]; then \
@@ -96,12 +96,12 @@ migrate-force:
 		exit 1; \
 	fi
 	@echo "Forcing migration version to $(version)..."
-	migrate -path internal/platform/db/migrations -database "$(DB_URL)" force $(version)
+	migrate -path internal/platform/db/schema/migrations -database "$(DB_URL)" force $(version)
 
 lint-sql:
-	sqlfluff lint internal/platform/db/migrations/
+	sqlfluff lint internal/platform/db/schema/migrations/
 	sqlfluff lint internal/platform/db/queries/
 
 fix-sql:
-	sqlfluff fix internal/platform/db/migrations/
+	sqlfluff fix internal/platform/db/schema/migrations/
 	sqlfluff fix internal/platform/db/queries/
