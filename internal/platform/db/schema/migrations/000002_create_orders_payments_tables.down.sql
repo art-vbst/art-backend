@@ -14,6 +14,10 @@ DROP INDEX IF EXISTS idx_orders_created_at;
 
 DROP INDEX IF EXISTS idx_orders_status;
 
+DROP INDEX IF EXISTS idx_artworks_order_id;
+
+ALTER TABLE artworks DROP COLUMN IF EXISTS order_id;
+
 DROP TABLE IF EXISTS payments;
 
 DROP TABLE IF EXISTS payment_requirements;

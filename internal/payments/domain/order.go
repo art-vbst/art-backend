@@ -7,10 +7,21 @@ import (
 	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
+type OrderStatus = generated.OrderStatus
+
+const (
+	OrderStatusPending    OrderStatus = "pending"
+	OrderStatusProcessing OrderStatus = "processing"
+	OrderStatusShipped    OrderStatus = "shipped"
+	OrderStatusCompleted  OrderStatus = "completed"
+	OrderStatusFailed     OrderStatus = "failed"
+	OrderStatusCanceled   OrderStatus = "canceled"
+)
+
 type Order struct {
 	ID                 uuid.UUID
-	StripeSessionID    string
-	Status             generated.OrderStatus
+	StripeSessionID    *string
+	Status             OrderStatus
 	ShippingDetail     ShippingDetail
 	PaymentRequirement PaymentRequirement
 	Payments           []Payment
@@ -38,3 +49,6 @@ type PaymentRequirement struct {
 	TotalCents    int32
 	Currency      string
 }
+
+const DefaultShippingCents = 1_000
+const DefaultCurrency = "usd"

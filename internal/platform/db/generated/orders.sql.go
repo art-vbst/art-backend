@@ -14,54 +14,59 @@ import (
 
 const createOrder = `-- name: CreateOrder :one
 WITH new_order AS (
-    INSERT INTO orders (
-        stripe_session_id,
-        status
-    ) VALUES (
-        $1,
-        $2
-    ) RETURNING id, stripe_session_id, status, created_at
+    INSERT INTO orders (status, stripe_session_id)
+    VALUES ($1, $2)
+    RETURNING id, status, stripe_session_id, created_at
 ),
 new_payment_requirement AS (
     INSERT INTO payment_requirements (
-        order_id,
-        subtotal_cents,
-        shipping_cents,
-        total_cents,
-        currency
-    ) VALUES (
-        (SELECT id FROM new_order),
-        $3,
-        $4,
-        $5,
-        $6
-    ) RETURNING id, order_id, subtotal_cents, shipping_cents, total_cents, currency
+            order_id,
+            subtotal_cents,
+            shipping_cents,
+            total_cents,
+            currency
+        )
+    VALUES (
+            (
+                SELECT id
+                FROM new_order
+            ),
+            $3,
+            $4,
+            $5,
+            $6
+        )
+    RETURNING id, order_id, subtotal_cents, shipping_cents, total_cents, currency
 ),
 new_shipping_details AS (
     INSERT INTO shipping_details (
-        order_id,
-        email,
-        name,
-        line1,
-        line2,
-        city,
-        state,
-        postal,
-        country
-    ) VALUES (
-        (SELECT id FROM new_order),
-        $7,
-        $8,
-        $9,
-        $10,
-        $11,
-        $12,
-        $13,
-        $14
-    ) RETURNING id, order_id, email, name, line1, line2, city, state, postal, country
+            order_id,
+            email,
+            name,
+            line1,
+            line2,
+            city,
+            state,
+            postal,
+            country
+        )
+    VALUES (
+            (
+                SELECT id
+                FROM new_order
+            ),
+            $7,
+            $8,
+            $9,
+            $10,
+            $11,
+            $12,
+            $13,
+            $14
+        )
+    RETURNING id, order_id, email, name, line1, line2, city, state, postal, country
 )
-SELECT 
-    new_order.id as order_id,
+SELECT new_order.id as order_id,
     new_order.stripe_session_id,
     new_order.status,
     new_order.created_at,
@@ -79,12 +84,14 @@ SELECT
     new_shipping_details.state,
     new_shipping_details.postal,
     new_shipping_details.country
-FROM new_order, new_payment_requirement, new_shipping_details
+FROM new_order,
+    new_payment_requirement,
+    new_shipping_details
 `
 
 type CreateOrderParams struct {
-	StripeSessionID string      `db:"stripe_session_id" json:"stripe_session_id"`
 	Status          OrderStatus `db:"status" json:"status"`
+	StripeSessionID *string     `db:"stripe_session_id" json:"stripe_session_id"`
 	SubtotalCents   int32       `db:"subtotal_cents" json:"subtotal_cents"`
 	ShippingCents   int32       `db:"shipping_cents" json:"shipping_cents"`
 	TotalCents      int32       `db:"total_cents" json:"total_cents"`
@@ -101,7 +108,7 @@ type CreateOrderParams struct {
 
 type CreateOrderRow struct {
 	OrderID              uuid.UUID        `db:"order_id" json:"order_id"`
-	StripeSessionID      string           `db:"stripe_session_id" json:"stripe_session_id"`
+	StripeSessionID      *string          `db:"stripe_session_id" json:"stripe_session_id"`
 	Status               OrderStatus      `db:"status" json:"status"`
 	CreatedAt            pgtype.Timestamp `db:"created_at" json:"created_at"`
 	PaymentRequirementID uuid.UUID        `db:"payment_requirement_id" json:"payment_requirement_id"`
@@ -122,8 +129,8 @@ type CreateOrderRow struct {
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error) {
 	row := q.db.QueryRow(ctx, createOrder,
-		arg.StripeSessionID,
 		arg.Status,
+		arg.StripeSessionID,
 		arg.SubtotalCents,
 		arg.ShippingCents,
 		arg.TotalCents,
@@ -148,6 +155,117 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Creat
 		&i.ShippingCents,
 		&i.TotalCents,
 		&i.Currency,
+		&i.ShippingDetailsID,
+		&i.Email,
+		&i.Name,
+		&i.Line1,
+		&i.Line2,
+		&i.City,
+		&i.State,
+		&i.Postal,
+		&i.Country,
+	)
+	return i, err
+}
+
+const deleteOrder = `-- name: DeleteOrder :exec
+DELETE FROM orders
+WHERE id = $1
+`
+
+func (q *Queries) DeleteOrder(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOrder, id)
+	return err
+}
+
+const updateOrderAndShipping = `-- name: UpdateOrderAndShipping :one
+WITH updated_order AS (
+    UPDATE orders
+    SET status = $2,
+        stripe_session_id = $3
+    WHERE orders.id = $1
+    RETURNING id, status, stripe_session_id, created_at
+),
+updated_shipping_details AS (
+    UPDATE shipping_details
+    SET email = $4,
+        name = $5,
+        line1 = $6,
+        line2 = $7,
+        city = $8,
+        state = $9,
+        postal = $10,
+        country = $11
+    WHERE order_id = $1
+    RETURNING id, order_id, email, name, line1, line2, city, state, postal, country
+)
+SELECT updated_order.id as order_id,
+    updated_order.stripe_session_id,
+    updated_order.status,
+    updated_order.created_at,
+    updated_shipping_details.id as shipping_details_id,
+    updated_shipping_details.email,
+    updated_shipping_details.name,
+    updated_shipping_details.line1,
+    updated_shipping_details.line2,
+    updated_shipping_details.city,
+    updated_shipping_details.state,
+    updated_shipping_details.postal,
+    updated_shipping_details.country
+FROM updated_order
+    CROSS JOIN updated_shipping_details
+`
+
+type UpdateOrderAndShippingParams struct {
+	ID              uuid.UUID   `db:"id" json:"id"`
+	Status          OrderStatus `db:"status" json:"status"`
+	StripeSessionID *string     `db:"stripe_session_id" json:"stripe_session_id"`
+	Email           string      `db:"email" json:"email"`
+	Name            string      `db:"name" json:"name"`
+	Line1           string      `db:"line1" json:"line1"`
+	Line2           *string     `db:"line2" json:"line2"`
+	City            string      `db:"city" json:"city"`
+	State           string      `db:"state" json:"state"`
+	Postal          string      `db:"postal" json:"postal"`
+	Country         string      `db:"country" json:"country"`
+}
+
+type UpdateOrderAndShippingRow struct {
+	OrderID           uuid.UUID        `db:"order_id" json:"order_id"`
+	StripeSessionID   *string          `db:"stripe_session_id" json:"stripe_session_id"`
+	Status            OrderStatus      `db:"status" json:"status"`
+	CreatedAt         pgtype.Timestamp `db:"created_at" json:"created_at"`
+	ShippingDetailsID uuid.UUID        `db:"shipping_details_id" json:"shipping_details_id"`
+	Email             string           `db:"email" json:"email"`
+	Name              string           `db:"name" json:"name"`
+	Line1             string           `db:"line1" json:"line1"`
+	Line2             *string          `db:"line2" json:"line2"`
+	City              string           `db:"city" json:"city"`
+	State             string           `db:"state" json:"state"`
+	Postal            string           `db:"postal" json:"postal"`
+	Country           string           `db:"country" json:"country"`
+}
+
+func (q *Queries) UpdateOrderAndShipping(ctx context.Context, arg UpdateOrderAndShippingParams) (UpdateOrderAndShippingRow, error) {
+	row := q.db.QueryRow(ctx, updateOrderAndShipping,
+		arg.ID,
+		arg.Status,
+		arg.StripeSessionID,
+		arg.Email,
+		arg.Name,
+		arg.Line1,
+		arg.Line2,
+		arg.City,
+		arg.State,
+		arg.Postal,
+		arg.Country,
+	)
+	var i UpdateOrderAndShippingRow
+	err := row.Scan(
+		&i.OrderID,
+		&i.StripeSessionID,
+		&i.Status,
+		&i.CreatedAt,
 		&i.ShippingDetailsID,
 		&i.Email,
 		&i.Name,

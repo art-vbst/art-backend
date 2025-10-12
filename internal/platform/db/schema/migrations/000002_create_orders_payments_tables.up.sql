@@ -11,8 +11,8 @@ CREATE TYPE payment_status AS ENUM ('success', 'failed', 'refunded');
 
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    stripe_session_id TEXT NOT NULL,
     status order_status NOT NULL,
+    stripe_session_id TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
@@ -48,6 +48,12 @@ CREATE TABLE payments (
     created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
     paid_at TIMESTAMP
 );
+
+ALTER TABLE artworks
+ADD COLUMN order_id UUID REFERENCES orders (id) ON DELETE
+SET NULL;
+
+CREATE INDEX idx_artworks_order_id ON artworks (order_id);
 
 CREATE INDEX idx_orders_status ON orders (status);
 

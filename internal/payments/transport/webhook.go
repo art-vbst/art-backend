@@ -2,13 +2,16 @@ package transport
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v83"
 	"github.com/stripe/stripe-go/v83/webhook"
-	"github.com/talmage89/art-backend/internal/payments/repo"
+	artrepo "github.com/talmage89/art-backend/internal/artwork/repo"
+	payrepo "github.com/talmage89/art-backend/internal/payments/repo"
 	"github.com/talmage89/art-backend/internal/payments/service"
 	"github.com/talmage89/art-backend/internal/platform/config"
 	"github.com/talmage89/art-backend/internal/platform/db/store"
@@ -20,8 +23,13 @@ type WebhookHandler struct {
 	env     *config.Config
 }
 
+const (
+	CheckoutComplete stripe.EventType = "checkout.session.completed"
+	CheckoutExpired  stripe.EventType = "checkout.session.expired"
+)
+
 func NewWebhookHandler(db *store.Store, env *config.Config) *WebhookHandler {
-	service := service.NewWebhookService(repo.New(db))
+	service := service.NewWebhookService(payrepo.New(db), artrepo.New(db))
 	return &WebhookHandler{service: service, env: env}
 }
 
@@ -45,7 +53,7 @@ func (h *WebhookHandler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if event.Type != "checkout.session.completed" {
+	if event.Type != CheckoutComplete && event.Type != CheckoutExpired {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -56,7 +64,19 @@ func (h *WebhookHandler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.service.HandleCheckoutComplete(r.Context(), session)
+	switch event.Type {
+	case CheckoutComplete:
+		if err := h.service.HandleCheckoutComplete(r.Context(), session); err != nil {
+			handleServiceError(w, err)
+			return
+		}
+	case CheckoutExpired:
+		if err := h.service.HandleCheckoutExpired(r.Context(), session); err != nil {
+			handleServiceError(w, err)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -67,4 +87,18 @@ func parseCheckoutSession(event stripe.Event) (*stripe.CheckoutSession, error) {
 	}
 
 	return &session, nil
+}
+
+func handleServiceError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, service.ErrMetadataParse):
+		utils.RespondError(w, http.StatusInternalServerError, "Metadata parse error")
+	case errors.Is(err, service.ErrOrderNotFound):
+		utils.RespondError(w, http.StatusNotFound, "Order not found")
+	case errors.Is(err, service.ErrNotPaid):
+		utils.RespondError(w, http.StatusBadRequest, "Payment not successful")
+	default:
+		log.Printf("webhook service error: %v", err)
+		utils.RespondServerError(w)
+	}
 }

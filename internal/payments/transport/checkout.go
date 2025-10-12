@@ -7,8 +7,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/talmage89/art-backend/internal/artwork/repo"
-	"github.com/talmage89/art-backend/internal/artwork/service"
+	artrepo "github.com/talmage89/art-backend/internal/artwork/repo"
+	payrepo "github.com/talmage89/art-backend/internal/payments/repo"
+	"github.com/talmage89/art-backend/internal/payments/service"
 	"github.com/talmage89/art-backend/internal/platform/config"
 	"github.com/talmage89/art-backend/internal/platform/db/store"
 	"github.com/talmage89/art-backend/internal/platform/utils"
@@ -19,7 +20,7 @@ type CheckoutHandler struct {
 }
 
 func NewCheckoutHandler(db *store.Store, config *config.Config) *CheckoutHandler {
-	service := service.NewCheckoutService(repo.New(db), config)
+	service := service.NewCheckoutService(artrepo.New(db), payrepo.New(db), config)
 	return &CheckoutHandler{service: service}
 }
 
@@ -54,7 +55,7 @@ func handleCheckoutServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrInvalidUUIDs):
 		utils.RespondError(w, http.StatusBadRequest, "Invalid artwork ID format")
 	case errors.Is(err, service.ErrArtworksNotFound):
-		utils.RespondError(w, http.StatusNotFound, "One or more artworks not found")
+		utils.RespondError(w, http.StatusNotFound, "One or more artworks not found or unavailable")
 	case errors.Is(err, service.ErrEmptyRequest):
 		utils.RespondError(w, http.StatusBadRequest, "Artwork IDs cannot be empty")
 	case errors.Is(err, service.ErrTooManyItems):

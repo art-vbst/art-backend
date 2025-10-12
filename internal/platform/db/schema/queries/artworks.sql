@@ -60,23 +60,6 @@ FROM artworks a
 WHERE a.id = $1
 ORDER BY i.created_at;
 
--- name: GetStripeDataByArtworkIDs :many
-SELECT a.id,
-    a.title,
-    a.price_cents,
-    i.*
-FROM artworks a
-    LEFT JOIN LATERAL (
-        SELECT id as image_id,
-            image_url
-        FROM images
-        WHERE artwork_id = a.id
-        ORDER BY is_main_image DESC NULLS LAST,
-            created_at
-        LIMIT 1
-    ) i ON true
-WHERE a.id = ANY($1::uuid []);
-
 -- name: ListArtworks :many
 SELECT a.*,
     i.*
@@ -95,3 +78,37 @@ FROM artworks a
     ) i ON true
 ORDER BY a.sort_order,
     a.created_at DESC;
+
+-- name: ListArtworkStripeData :many
+SELECT a.id,
+    a.title,
+    a.price_cents,
+    a.status,
+    i.*
+FROM artworks a
+    LEFT JOIN LATERAL (
+        SELECT id as image_id,
+            image_url
+        FROM images
+        WHERE artwork_id = a.id
+        ORDER BY is_main_image DESC NULLS LAST,
+            created_at
+        LIMIT 1
+    ) i ON true
+WHERE a.id = ANY($1::uuid [])
+    AND a.status = 'available';
+
+-- name: UpdateArtworksForOrder :many
+UPDATE artworks
+SET status = 'pending',
+    order_id = $1,
+    updated_at = current_timestamp
+WHERE id = ANY($2::uuid [])
+RETURNING *;
+
+-- name: UpdateArtworkStatus :many
+UPDATE artworks
+SET status = $2,
+    updated_at = current_timestamp
+WHERE order_id = $1
+RETURNING *;

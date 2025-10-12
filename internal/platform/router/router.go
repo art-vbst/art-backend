@@ -54,7 +54,7 @@ func (s *RouterService) registerRoutes(r *chi.Mux) {
 	artworkHandler := artwork.NewArtworkHandler(s.db)
 	r.Mount("/artworks", artworkHandler.Routes())
 
-	checkoutHandler := artwork.NewCheckoutHandler(s.db, s.config)
+	checkoutHandler := payments.NewCheckoutHandler(s.db, s.config)
 	r.Mount("/checkout", checkoutHandler.Routes())
 
 	webhookHandler := payments.NewWebhookHandler(s.db, s.config)

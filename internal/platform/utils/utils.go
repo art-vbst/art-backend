@@ -15,6 +15,7 @@ func RespondJSON(w http.ResponseWriter, status int, data any) {
 }
 
 func RespondError(w http.ResponseWriter, status int, message string) {
+	log.Printf("%d %s\n", status, message)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]string{

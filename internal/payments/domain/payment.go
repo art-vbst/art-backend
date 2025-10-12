@@ -7,8 +7,17 @@ import (
 	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
+type PaymentStatus = generated.PaymentStatus
+
+const (
+	PaymentStatusSuccess  = generated.PaymentStatusSuccess
+	PaymentStatusFailed   = generated.PaymentStatusFailed
+	PaymentStatusRefunded = generated.PaymentStatusRefunded
+)
+
 type Payment struct {
 	ID                    uuid.UUID
+	OrderID               uuid.UUID
 	StripePaymentIntentID string
 	Status                generated.PaymentStatus
 	TotalCents            int32

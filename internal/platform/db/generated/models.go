@@ -104,11 +104,12 @@ func (ns NullArtworkMedium) Value() (driver.Value, error) {
 type ArtworkStatus string
 
 const (
-	ArtworkStatusSold        ArtworkStatus = "sold"
 	ArtworkStatusAvailable   ArtworkStatus = "available"
-	ArtworkStatusComingSoon  ArtworkStatus = "coming_soon"
+	ArtworkStatusPending     ArtworkStatus = "pending"
+	ArtworkStatusSold        ArtworkStatus = "sold"
 	ArtworkStatusNotForSale  ArtworkStatus = "not_for_sale"
 	ArtworkStatusUnavailable ArtworkStatus = "unavailable"
+	ArtworkStatusComingSoon  ArtworkStatus = "coming_soon"
 )
 
 func (e *ArtworkStatus) Scan(src interface{}) error {
@@ -251,6 +252,7 @@ type Artwork struct {
 	Category       ArtworkCategory  `db:"category" json:"category"`
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
 }
 
 type Image struct {
@@ -266,8 +268,8 @@ type Image struct {
 
 type Order struct {
 	ID              uuid.UUID        `db:"id" json:"id"`
-	StripeSessionID string           `db:"stripe_session_id" json:"stripe_session_id"`
 	Status          OrderStatus      `db:"status" json:"status"`
+	StripeSessionID *string          `db:"stripe_session_id" json:"stripe_session_id"`
 	CreatedAt       pgtype.Timestamp `db:"created_at" json:"created_at"`
 }
 

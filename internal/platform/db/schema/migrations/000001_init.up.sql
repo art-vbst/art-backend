@@ -1,11 +1,12 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE artwork_status AS ENUM (
-    'sold',
     'available',
-    'coming_soon',
+    'pending',
+    'sold',
     'not_for_sale',
-    'unavailable'
+    'unavailable',
+    'coming_soon'
 );
 
 CREATE TYPE artwork_medium AS ENUM (

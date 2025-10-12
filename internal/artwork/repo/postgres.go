@@ -2,8 +2,10 @@ package repo
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/talmage89/art-backend/internal/artwork/domain"
 	"github.com/talmage89/art-backend/internal/platform/db/generated"
 	"github.com/talmage89/art-backend/internal/platform/db/store"
@@ -30,11 +32,39 @@ func (p *Postgres) GetArtworkDetail(ctx context.Context, id uuid.UUID) (*domain.
 }
 
 func (p *Postgres) GetArtworkCheckoutData(ctx context.Context, ids []uuid.UUID) ([]domain.Artwork, error) {
-	artworks, err := p.db.Queries().GetStripeDataByArtworkIDs(ctx, ids)
+	artworks, err := p.db.Queries().ListArtworkStripeData(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
 	return toDomainArtworkCheckoutListRow(artworks), nil
+}
+
+func (p *Postgres) UpdateArtworksForPendingOrder(ctx context.Context, orderId uuid.UUID, ids []uuid.UUID) error {
+	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		rows, err := q.UpdateArtworksForOrder(ctx, generated.UpdateArtworksForOrderParams{
+			OrderID: pgtype.UUID{Bytes: orderId, Valid: true},
+			Column2: ids,
+		})
+		if len(rows) != len(ids) {
+			return errors.New("one or more artworks not found")
+		}
+		return err
+	})
+}
+
+func (p *Postgres) UpdateArtworkStatuses(ctx context.Context, orderID uuid.UUID, status domain.ArtworkStatus) error {
+	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		params := generated.UpdateArtworkStatusParams{
+			OrderID: pgtype.UUID{Bytes: orderID, Valid: true},
+			Status:  status,
+		}
+
+		if _, err := q.UpdateArtworkStatus(ctx, params); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func toDomainArtworkListRow(rows []generated.ListArtworksRow) []domain.Artwork {
@@ -78,7 +108,7 @@ func toDomainArtworkListRow(rows []generated.ListArtworksRow) []domain.Artwork {
 	return artworks
 }
 
-func toDomainArtworkCheckoutListRow(rows []generated.GetStripeDataByArtworkIDsRow) []domain.Artwork {
+func toDomainArtworkCheckoutListRow(rows []generated.ListArtworkStripeDataRow) []domain.Artwork {
 	artworks := []domain.Artwork{}
 
 	for _, row := range rows {
