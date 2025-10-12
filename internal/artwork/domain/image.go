@@ -7,11 +7,11 @@ import (
 )
 
 type Image struct {
-	ID          uuid.UUID
-	ArtworkID   uuid.UUID
-	IsMainImage bool
-	ImageURL    string
-	ImageWidth  *int32
-	ImageHeight *int32
-	CreatedAt   time.Time
+	ID          uuid.UUID `json:"id"`
+	ArtworkID   uuid.UUID `json:"artwork_id"`
+	IsMainImage bool      `json:"is_main_image"`
+	ImageURL    string    `json:"image_url"`
+	ImageWidth  *int32    `json:"image_width"`
+	ImageHeight *int32    `json:"image_height"`
+	CreatedAt   time.Time `json:"created_at"`
 }

@@ -38,20 +38,20 @@ const (
 )
 
 type Artwork struct {
-	ID             uuid.UUID
-	Title          string
-	PaintingNumber *int32
-	PaintingYear   *int32
-	WidthInches    float64
-	HeightInches   float64
-	PriceCents     int32
-	Paper          *bool
-	SortOrder      *int32
-	SoldAt         *time.Time
-	Status         ArtworkStatus
-	Medium         ArtworkMedium
-	Category       ArtworkCategory
-	Images         []Image
-	CreatedAt      time.Time
-	OrderId        *uuid.UUID
+	ID             uuid.UUID       `json:"id"`
+	Title          string          `json:"title"`
+	PaintingNumber *int32          `json:"painting_number"`
+	PaintingYear   *int32          `json:"painting_year"`
+	WidthInches    float64         `json:"width_inches"`
+	HeightInches   float64         `json:"height_inches"`
+	PriceCents     int32           `json:"price_cents"`
+	Paper          *bool           `json:"paper"`
+	SortOrder      *int32          `json:"sort_order"`
+	SoldAt         *time.Time      `json:"sold_at"`
+	Status         ArtworkStatus   `json:"status"`
+	Medium         ArtworkMedium   `json:"medium"`
+	Category       ArtworkCategory `json:"category"`
+	Images         []Image         `json:"images"`
+	CreatedAt      time.Time       `json:"created_at"`
+	OrderId        *uuid.UUID      `json:"order_id"`
 }
