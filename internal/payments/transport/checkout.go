@@ -34,6 +34,10 @@ type CheckoutRequest struct {
 	ArtworkIds []string `json:"artwork_ids"`
 }
 
+type CheckoutResponse struct {
+	Url string `json:"url"`
+}
+
 func (h *CheckoutHandler) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	var req CheckoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -41,13 +45,15 @@ func (h *CheckoutHandler) handleCheckout(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	result, err := h.service.CreateCheckoutSession(r.Context(), req.ArtworkIds)
+	url, err := h.service.CreateCheckoutSession(r.Context(), req.ArtworkIds)
 	if err != nil {
 		handleCheckoutServiceError(w, err)
 		return
 	}
 
-	utils.RespondJSON(w, http.StatusOK, result)
+	utils.RespondJSON(w, http.StatusOK, &CheckoutResponse{
+		Url: *url,
+	})
 }
 
 func handleCheckoutServiceError(w http.ResponseWriter, err error) {
