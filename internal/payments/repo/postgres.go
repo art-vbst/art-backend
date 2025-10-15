@@ -3,11 +3,11 @@ package repo
 import (
 	"context"
 
+	"github.com/art-vbst/art-backend/internal/payments/domain"
+	"github.com/art-vbst/art-backend/internal/platform/db/generated"
+	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/talmage89/art-backend/internal/payments/domain"
-	"github.com/talmage89/art-backend/internal/platform/db/generated"
-	"github.com/talmage89/art-backend/internal/platform/db/store"
 )
 
 type Postgres struct {

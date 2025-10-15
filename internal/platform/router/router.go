@@ -3,13 +3,13 @@ package router
 import (
 	"time"
 
+	artwork "github.com/art-vbst/art-backend/internal/artwork/transport"
+	payments "github.com/art-vbst/art-backend/internal/payments/transport"
+	"github.com/art-vbst/art-backend/internal/platform/config"
+	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	artwork "github.com/talmage89/art-backend/internal/artwork/transport"
-	payments "github.com/talmage89/art-backend/internal/payments/transport"
-	"github.com/talmage89/art-backend/internal/platform/config"
-	"github.com/talmage89/art-backend/internal/platform/db/store"
 )
 
 type RouterService struct {

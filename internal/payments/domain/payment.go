@@ -3,8 +3,8 @@ package domain
 import (
 	"time"
 
+	"github.com/art-vbst/art-backend/internal/platform/db/generated"
 	"github.com/google/uuid"
-	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
 type PaymentStatus = generated.PaymentStatus

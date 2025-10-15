@@ -3,9 +3,9 @@ package repo
 import (
 	"context"
 
+	"github.com/art-vbst/art-backend/internal/artwork/domain"
+	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/google/uuid"
-	"github.com/talmage89/art-backend/internal/artwork/domain"
-	"github.com/talmage89/art-backend/internal/platform/db/store"
 )
 
 type Repo interface {

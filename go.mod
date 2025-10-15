@@ -1,4 +1,4 @@
-module github.com/talmage89/art-backend
+module github.com/art-vbst/art-backend
 
 go 1.25.1
 

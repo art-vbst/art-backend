@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/talmage89/art-backend/internal/platform/config"
-	"github.com/talmage89/art-backend/internal/platform/db/pooler"
-	"github.com/talmage89/art-backend/internal/platform/db/store"
-	"github.com/talmage89/art-backend/internal/platform/router"
+	"github.com/art-vbst/art-backend/internal/platform/config"
+	"github.com/art-vbst/art-backend/internal/platform/db/pooler"
+	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/router"
 )
 
 func main() {

@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 
+	"github.com/art-vbst/art-backend/internal/platform/db/generated"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/talmage89/art-backend/internal/platform/db/generated"
 )
 
 type Store struct {

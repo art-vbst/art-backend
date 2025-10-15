@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/art-vbst/art-backend/internal/artwork/domain"
+	"github.com/art-vbst/art-backend/internal/artwork/repo"
 	"github.com/google/uuid"
-	"github.com/talmage89/art-backend/internal/artwork/domain"
-	"github.com/talmage89/art-backend/internal/artwork/repo"
 )
 
 var (

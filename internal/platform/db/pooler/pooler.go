@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/talmage89/art-backend/internal/platform/config"
 )
 
 func GetDbConnectionPool(ctx context.Context, env *config.Config) *pgxpool.Pool {

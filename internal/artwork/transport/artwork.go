@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/art-vbst/art-backend/internal/artwork/repo"
+	"github.com/art-vbst/art-backend/internal/artwork/service"
+	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/go-chi/chi/v5"
-	"github.com/talmage89/art-backend/internal/artwork/repo"
-	"github.com/talmage89/art-backend/internal/artwork/service"
-	"github.com/talmage89/art-backend/internal/platform/db/store"
-	"github.com/talmage89/art-backend/internal/platform/utils"
 )
 
 type ArtworkHandler struct {

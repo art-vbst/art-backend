@@ -6,13 +6,13 @@ import (
 	"log"
 	"net/http"
 
+	artrepo "github.com/art-vbst/art-backend/internal/artwork/repo"
+	payrepo "github.com/art-vbst/art-backend/internal/payments/repo"
+	"github.com/art-vbst/art-backend/internal/payments/service"
+	"github.com/art-vbst/art-backend/internal/platform/config"
+	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/go-chi/chi/v5"
-	artrepo "github.com/talmage89/art-backend/internal/artwork/repo"
-	payrepo "github.com/talmage89/art-backend/internal/payments/repo"
-	"github.com/talmage89/art-backend/internal/payments/service"
-	"github.com/talmage89/art-backend/internal/platform/config"
-	"github.com/talmage89/art-backend/internal/platform/db/store"
-	"github.com/talmage89/art-backend/internal/platform/utils"
 )
 
 type CheckoutHandler struct {

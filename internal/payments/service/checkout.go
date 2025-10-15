@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"log"
 
+	artdomain "github.com/art-vbst/art-backend/internal/artwork/domain"
+	artrepo "github.com/art-vbst/art-backend/internal/artwork/repo"
+	paydomain "github.com/art-vbst/art-backend/internal/payments/domain"
+	payrepo "github.com/art-vbst/art-backend/internal/payments/repo"
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v83"
 	"github.com/stripe/stripe-go/v83/checkout/session"
-	artdomain "github.com/talmage89/art-backend/internal/artwork/domain"
-	artrepo "github.com/talmage89/art-backend/internal/artwork/repo"
-	paydomain "github.com/talmage89/art-backend/internal/payments/domain"
-	payrepo "github.com/talmage89/art-backend/internal/payments/repo"
-	"github.com/talmage89/art-backend/internal/platform/config"
 )
 
 var (
