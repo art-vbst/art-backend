@@ -1,9 +1,26 @@
 services:
-  app:
+  backend:
     build:
-      context: .
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
     env_file:
       - .env
+    environment:
+      - DB_URL=postgresql://artuser:artpass@postgres:5432/artdb
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: artuser
+      POSTGRES_PASSWORD: artpass
+      POSTGRES_DB: artdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
