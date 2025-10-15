@@ -23,7 +23,6 @@ func main() {
 	r := router.New(store, config).CreateRouter()
 
 	log.Printf("Server starting on :%s", config.Port)
-	log.Printf("included for ci retrigger...")
 	if err := http.ListenAndServe(":"+config.Port, r); err != nil {
 		log.Fatal(err)
 	}
