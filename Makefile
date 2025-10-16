@@ -98,10 +98,18 @@ migrate-force:
 	@echo "Forcing migration version to $(version)..."
 	migrate -path internal/platform/db/schema/migrations -database "$(DB_URL)" force $(version)
 
+seed:
+	@echo "Seeding database..."
+	@if [ -z "$(DB_URL)" ]; then \
+		echo "Error: DB_URL environment variable is not set"; \
+		exit 1; \
+	fi
+	psql "$(DB_URL)" < internal/platform/db/seed/artworks.sql
+
 lint-sql:
 	sqlfluff lint internal/platform/db/schema/migrations/
-	sqlfluff lint internal/platform/db/queries/
+	sqlfluff lint internal/platform/db/schema/queries/
 
 fix-sql:
 	sqlfluff fix internal/platform/db/schema/migrations/
-	sqlfluff fix internal/platform/db/queries/
+	sqlfluff fix internal/platform/db/schema/queries/
