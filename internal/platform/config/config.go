@@ -9,6 +9,7 @@ import (
 )
 
 type Config struct {
+	Debug               string
 	Port                string
 	DbUrl               string
 	FrontendUrl         string
@@ -22,6 +23,7 @@ func Load() *Config {
 	}
 
 	config := Config{
+		Debug:               os.Getenv("DEBUG"),
 		Port:                os.Getenv("PORT"),
 		DbUrl:               os.Getenv("DB_URL"),
 		FrontendUrl:         os.Getenv("FRONTEND_URL"),
@@ -35,7 +37,7 @@ func Load() *Config {
 		field := typ.Field(i)
 		value := val.Field(i)
 
-		if field.Name == "Port" {
+		if field.Name == "Port" || field.Name == "Debug" {
 			continue
 		}
 		if value.String() == "" {

@@ -40,8 +40,13 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(middleware.Throttle(100))
 
+	allowedOrigins := []string{s.config.FrontendUrl, "https://checkout.stripe.com"}
+	if s.config.Debug == "true" {
+		allowedOrigins = []string{"*"}
+	}
+
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{s.config.FrontendUrl, "https://checkout.stripe.com"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},

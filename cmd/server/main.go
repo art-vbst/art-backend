@@ -22,6 +22,10 @@ func main() {
 
 	r := router.New(store, config).CreateRouter()
 
+	if config.Debug == "true" {
+		log.Printf("[WARNING] debug mode enabled")
+	}
+
 	log.Printf("Server starting on :%s", config.Port)
 	if err := http.ListenAndServe(":"+config.Port, r); err != nil {
 		log.Fatal(err)
