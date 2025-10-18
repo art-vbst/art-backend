@@ -12,6 +12,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/payments/service"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/mailer"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v83"
@@ -28,8 +29,9 @@ const (
 	CheckoutExpired  stripe.EventType = "checkout.session.expired"
 )
 
-func NewWebhookHandler(db *store.Store, env *config.Config) *WebhookHandler {
-	service := service.NewWebhookService(payrepo.New(db), artrepo.New(db))
+func NewWebhookHandler(db *store.Store, env *config.Config, mailer mailer.Mailer) *WebhookHandler {
+	emails := service.NewEmailService(mailer, env.EmailSignature)
+	service := service.NewWebhookService(payrepo.New(db), artrepo.New(db), emails)
 	return &WebhookHandler{service: service, env: env}
 }
 

@@ -152,7 +152,7 @@ func (s *CheckoutService) createCheckoutSession(artworks []artdomain.Artwork, or
 
 	params := &stripe.CheckoutSessionParams{
 		Mode:                      stripe.String(string(stripe.CheckoutSessionModePayment)),
-		SuccessURL:                stripe.String(s.config.FrontendUrl + "/checkout?success=true"),
+		SuccessURL:                stripe.String(s.config.FrontendUrl + "/checkout/return?success=true&order_id=" + orderId.String()),
 		CancelURL:                 stripe.String(s.config.FrontendUrl),
 		LineItems:                 lineItems,
 		ShippingAddressCollection: shippingAddress,

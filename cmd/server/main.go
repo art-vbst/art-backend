@@ -8,6 +8,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/pooler"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/mailer"
 	"github.com/art-vbst/art-backend/internal/platform/router"
 )
 
@@ -17,10 +18,11 @@ func main() {
 
 	pool := pooler.GetDbConnectionPool(ctx, config)
 	defer pool.Close()
-
 	store := store.New(pool)
 
-	r := router.New(store, config).CreateRouter()
+	mailer := mailer.New(config)
+
+	r := router.New(store, config, mailer).CreateRouter()
 
 	if config.Debug == "true" {
 		log.Printf("[WARNING] debug mode enabled")

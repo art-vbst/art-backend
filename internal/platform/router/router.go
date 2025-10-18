@@ -7,6 +7,7 @@ import (
 	payments "github.com/art-vbst/art-backend/internal/payments/transport"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/mailer"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -15,12 +16,14 @@ import (
 type RouterService struct {
 	db     *store.Store
 	config *config.Config
+	mailer mailer.Mailer
 }
 
-func New(db *store.Store, config *config.Config) *RouterService {
+func New(db *store.Store, config *config.Config, mailer mailer.Mailer) *RouterService {
 	return &RouterService{
 		db:     db,
 		config: config,
+		mailer: mailer,
 	}
 }
 
@@ -62,6 +65,6 @@ func (s *RouterService) registerRoutes(r *chi.Mux) {
 	checkoutHandler := payments.NewCheckoutHandler(s.db, s.config)
 	r.Mount("/checkout", checkoutHandler.Routes())
 
-	webhookHandler := payments.NewWebhookHandler(s.db, s.config)
+	webhookHandler := payments.NewWebhookHandler(s.db, s.config, s.mailer)
 	r.Mount("/stripe/webhook", webhookHandler.Routes())
 }

@@ -22,10 +22,11 @@ var (
 type WebhookService struct {
 	payrepo payrepo.Repo
 	artrepo artrepo.Repo
+	emails  *EmailService
 }
 
-func NewWebhookService(payrepo payrepo.Repo, artrepo artrepo.Repo) *WebhookService {
-	return &WebhookService{payrepo: payrepo, artrepo: artrepo}
+func NewWebhookService(payrepo payrepo.Repo, artrepo artrepo.Repo, emails *EmailService) *WebhookService {
+	return &WebhookService{payrepo: payrepo, artrepo: artrepo, emails: emails}
 }
 
 func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *stripe.CheckoutSession) error {
@@ -72,6 +73,8 @@ func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *st
 	if err := s.artrepo.UpdateArtworkStatuses(ctx, *orderID, artdomain.ArtworkStatusSold); err != nil {
 		return err
 	}
+
+	s.emails.SendOrderRecieved(order.ID, shipping.Email)
 
 	return nil
 }
