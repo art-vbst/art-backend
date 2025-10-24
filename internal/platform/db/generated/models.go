@@ -293,6 +293,15 @@ type PaymentRequirement struct {
 	Currency      string    `db:"currency" json:"currency"`
 }
 
+type RefreshToken struct {
+	ID        uuid.UUID        `db:"id" json:"id"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	TokenHash string           `db:"token_hash" json:"token_hash"`
+	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
+	ExpiresAt pgtype.Timestamp `db:"expires_at" json:"expires_at"`
+	Revoked   *bool            `db:"revoked" json:"revoked"`
+}
+
 type ShippingDetail struct {
 	ID      uuid.UUID `db:"id" json:"id"`
 	OrderID uuid.UUID `db:"order_id" json:"order_id"`
@@ -304,4 +313,11 @@ type ShippingDetail struct {
 	State   string    `db:"state" json:"state"`
 	Postal  string    `db:"postal" json:"postal"`
 	Country string    `db:"country" json:"country"`
+}
+
+type User struct {
+	ID           uuid.UUID        `db:"id" json:"id"`
+	Email        string           `db:"email" json:"email"`
+	PasswordHash string           `db:"password_hash" json:"password_hash"`
+	CreatedAt    pgtype.Timestamp `db:"created_at" json:"created_at"`
 }
