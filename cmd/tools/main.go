@@ -9,7 +9,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/pooler"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
-	"github.com/art-vbst/art-backend/internal/tools"
+	"github.com/art-vbst/art-backend/internal/platform/tools"
 )
 
 func main() {
