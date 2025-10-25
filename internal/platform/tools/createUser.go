@@ -121,7 +121,7 @@ func getPasswordString(msg string) (string, error) {
 	return password, nil
 }
 
-func createUser(ctx context.Context, authRepo repo.Repo, email string, password string) (*domain.User, error) {
+func createUser(ctx context.Context, authRepo repo.Repo, email string, password string) (*domain.UserWithHash, error) {
 	hash, err := utils.GetHash(password)
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func createUser(ctx context.Context, authRepo repo.Repo, email string, password 
 	return authRepo.CreateUser(ctx, email, hash)
 }
 
-func logUserCreated(user *domain.User) {
+func logUserCreated(user *domain.UserWithHash) {
 	log.Print("User created")
 	log.Print("User ID: ", user.ID)
 	log.Print("User Email: ", user.Email)

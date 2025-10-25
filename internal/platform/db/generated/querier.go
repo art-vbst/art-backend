@@ -21,13 +21,13 @@ type Querier interface {
 	DeleteOrder(ctx context.Context, id uuid.UUID) error
 	GetArtwork(ctx context.Context, id uuid.UUID) (GetArtworkRow, error)
 	GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error)
-	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
+	GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	ListArtworkStripeData(ctx context.Context, dollar_1 []uuid.UUID) ([]ListArtworkStripeDataRow, error)
 	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error
-	RevokeRefreshToken(ctx context.Context, tokenHash string) error
+	RevokeRefreshToken(ctx context.Context, id uuid.UUID) error
 	UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) ([]Artwork, error)
 	UpdateArtworksForOrder(ctx context.Context, arg UpdateArtworksForOrderParams) ([]Artwork, error)
 	UpdateOrderAndShipping(ctx context.Context, arg UpdateOrderAndShippingParams) (UpdateOrderAndShippingRow, error)

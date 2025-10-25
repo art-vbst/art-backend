@@ -12,8 +12,9 @@ import (
 type Config struct {
 	Debug               string
 	Port                string
-	DbUrl               string
 	FrontendUrl         string
+	JwtSecret           string
+	DbUrl               string
 	StripeSecret        string
 	StripeWebhookSecret string
 	MailgunDomain       string
@@ -31,8 +32,9 @@ func Load() *Config {
 	config := Config{
 		Debug:               os.Getenv("DEBUG"),
 		Port:                os.Getenv("PORT"),
-		DbUrl:               os.Getenv("DB_URL"),
 		FrontendUrl:         os.Getenv("FRONTEND_URL"),
+		JwtSecret:           os.Getenv("JWT_SECRET"),
+		DbUrl:               os.Getenv("DB_URL"),
 		StripeSecret:        os.Getenv("STRIPE_SECRET"),
 		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 		MailgunDomain:       os.Getenv("MAILGUN_DOMAIN"),

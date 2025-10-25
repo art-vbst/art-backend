@@ -13,29 +13,31 @@ import (
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-VALUES ($1, $2, $3)
-RETURNING id,
-    user_id,
-    token_hash,
-    created_at,
-    expires_at,
-    revoked
+INSERT INTO refresh_tokens (user_id, token_hash, jti, expires_at)
+VALUES ($1, $2, $3, $4)
+RETURNING id, user_id, token_hash, jti, created_at, expires_at, revoked
 `
 
 type CreateRefreshTokenParams struct {
 	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
 	TokenHash string           `db:"token_hash" json:"token_hash"`
+	Jti       uuid.UUID        `db:"jti" json:"jti"`
 	ExpiresAt pgtype.Timestamp `db:"expires_at" json:"expires_at"`
 }
 
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error) {
-	row := q.db.QueryRow(ctx, createRefreshToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	row := q.db.QueryRow(ctx, createRefreshToken,
+		arg.UserID,
+		arg.TokenHash,
+		arg.Jti,
+		arg.ExpiresAt,
+	)
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.TokenHash,
+		&i.Jti,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.Revoked,
@@ -80,26 +82,22 @@ func (q *Queries) DeleteExpiredRefreshTokens(ctx context.Context) error {
 	return err
 }
 
-const getRefreshTokenByHash = `-- name: GetRefreshTokenByHash :one
-SELECT id,
-    user_id,
-    token_hash,
-    created_at,
-    expires_at,
-    revoked
+const getRefreshTokenByJTI = `-- name: GetRefreshTokenByJTI :one
+SELECT id, user_id, token_hash, jti, created_at, expires_at, revoked
 FROM refresh_tokens
-WHERE token_hash = $1
+WHERE jti = $1
     AND revoked = FALSE
     AND expires_at > now()
 `
 
-func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error) {
-	row := q.db.QueryRow(ctx, getRefreshTokenByHash, tokenHash)
+func (q *Queries) GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (RefreshToken, error) {
+	row := q.db.QueryRow(ctx, getRefreshTokenByJTI, jti)
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.TokenHash,
+		&i.Jti,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.Revoked,
@@ -163,10 +161,10 @@ func (q *Queries) RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UU
 const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
 UPDATE refresh_tokens
 SET revoked = TRUE
-WHERE token_hash = $1
+WHERE id = $1
 `
 
-func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
-	_, err := q.db.Exec(ctx, revokeRefreshToken, tokenHash)
+func (q *Queries) RevokeRefreshToken(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, revokeRefreshToken, id)
 	return err
 }

@@ -7,6 +7,11 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DefaultShippingCents = 1_000
+	DefaultCurrency      = "usd"
+)
+
 type OrderStatus = generated.OrderStatus
 
 const (
@@ -49,6 +54,3 @@ type PaymentRequirement struct {
 	TotalCents    int32
 	Currency      string
 }
-
-const DefaultShippingCents = 1_000
-const DefaultCurrency = "usd"

@@ -28,6 +28,10 @@ var defaultParams = Argon2Params{
 const paramsFormat = "m=%d,t=%d,p=%d"
 const hashFormat = "$argon2id$v=%d$" + paramsFormat + "$%s$%s"
 
+var (
+	ErrInvalidHash = errors.New("invalid hash format")
+)
+
 func GetHash(val string) (string, error) {
 	return GetHashString(val, defaultParams)
 }
@@ -52,7 +56,7 @@ func GetHashString(val string, p Argon2Params) (string, error) {
 func VerifyHash(val, encoded string) (bool, error) {
 	parts := strings.Split(encoded, "$")
 	if len(parts) != 6 {
-		return false, errors.New("invalid hash format")
+		return false, ErrInvalidHash
 	}
 
 	params := parts[3]

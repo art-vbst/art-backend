@@ -52,7 +52,7 @@ func (m *Mailgun) SendEmail(to, subject, body string) error {
 }
 
 func (m *Mailgun) getSafeTo(intended string) string {
-	if !utils.IsDebug(m.config.Debug) {
+	if !utils.IsDebug() {
 		return intended
 	}
 

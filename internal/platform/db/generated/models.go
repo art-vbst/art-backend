@@ -297,9 +297,10 @@ type RefreshToken struct {
 	ID        uuid.UUID        `db:"id" json:"id"`
 	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
 	TokenHash string           `db:"token_hash" json:"token_hash"`
+	Jti       uuid.UUID        `db:"jti" json:"jti"`
 	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
 	ExpiresAt pgtype.Timestamp `db:"expires_at" json:"expires_at"`
-	Revoked   *bool            `db:"revoked" json:"revoked"`
+	Revoked   bool             `db:"revoked" json:"revoked"`
 }
 
 type ShippingDetail struct {

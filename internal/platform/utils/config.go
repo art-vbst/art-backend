@@ -1,5 +1,7 @@
 package utils
 
-func IsDebug(debug string) bool {
-	return debug == "true"
+import "os"
+
+func IsDebug() bool {
+	return os.Getenv("DEBUG") == "true"
 }

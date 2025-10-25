@@ -23,31 +23,21 @@ RETURNING id,
     created_at;
 
 -- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-VALUES ($1, $2, $3)
-RETURNING id,
-    user_id,
-    token_hash,
-    created_at,
-    expires_at,
-    revoked;
+INSERT INTO refresh_tokens (user_id, token_hash, jti, expires_at)
+VALUES ($1, $2, $3, $4)
+RETURNING *;
 
--- name: GetRefreshTokenByHash :one
-SELECT id,
-    user_id,
-    token_hash,
-    created_at,
-    expires_at,
-    revoked
+-- name: GetRefreshTokenByJTI :one
+SELECT *
 FROM refresh_tokens
-WHERE token_hash = $1
+WHERE jti = $1
     AND revoked = FALSE
     AND expires_at > now();
 
 -- name: RevokeRefreshToken :exec
 UPDATE refresh_tokens
 SET revoked = TRUE
-WHERE token_hash = $1;
+WHERE id = $1;
 
 -- name: RevokeAllUserRefreshTokens :exec
 UPDATE refresh_tokens

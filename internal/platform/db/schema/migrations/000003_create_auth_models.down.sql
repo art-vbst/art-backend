@@ -1,6 +1,8 @@
+DROP INDEX IF EXISTS idx_refresh_tokens_expires_at;
+
 DROP INDEX IF EXISTS idx_refresh_tokens_revoked;
 
-DROP INDEX IF EXISTS idx_refresh_tokens_expires_at;
+DROP INDEX IF EXISTS idx_refresh_tokens_jti;
 
 DROP INDEX IF EXISTS idx_refresh_tokens_token_hash;
 

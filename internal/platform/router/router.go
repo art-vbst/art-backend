@@ -4,6 +4,7 @@ import (
 	"time"
 
 	artwork "github.com/art-vbst/art-backend/internal/artwork/transport"
+	auth "github.com/art-vbst/art-backend/internal/auth/transport"
 	payments "github.com/art-vbst/art-backend/internal/payments/transport"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
@@ -44,9 +45,6 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 	r.Use(middleware.Throttle(100))
 
 	allowedOrigins := []string{s.config.FrontendUrl, "https://checkout.stripe.com"}
-	if s.config.Debug == "true" {
-		allowedOrigins = []string{"*"}
-	}
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,
@@ -59,6 +57,9 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 }
 
 func (s *RouterService) registerRoutes(r *chi.Mux) {
+	authHandler := auth.New(s.db, s.config)
+	r.Mount("/auth", authHandler.Routes())
+
 	artworkHandler := artwork.NewArtworkHandler(s.db)
 	r.Mount("/artworks", artworkHandler.Routes())
 
