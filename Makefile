@@ -1,4 +1,4 @@
-.PHONY: help build run test clean sqlc migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql
+.PHONY: help build run test clean exec sqlc migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql
 
 ifneq (,$(wildcard .env))
     include .env
@@ -12,12 +12,14 @@ help:
 	@echo "  make test           - Run tests"
 	@echo "  make clean          - Clean build artifacts"
 	@echo "  make sqlc           - Generate Go code from SQL"
+	@echo "  make exec           - Execute a tool"
 	@echo "  make migrate-create - Create a new migration (usage: make migrate-create name=create_users_table)"
 	@echo "  make migrate-up     - Run all pending migrations"
 	@echo "  make migrate-down   - Rollback the last migration"
 	@echo "  make migrate-reset  - Drop all migrations and re-apply them (WARNING: destructive)"
 	@echo "  make migrate-status - Show migration status"
 	@echo "  make migrate-force  - Force set migration version (usage: make migrate-force version=1)"
+	@echo "  make seed           - Seed the database"
 	@echo "  make lint-sql       - Lint SQL files"
 	@echo "  make fix-sql        - Fix SQL files"
 
@@ -36,6 +38,14 @@ test:
 clean:
 	@echo "Cleaning..."
 	rm -rf bin/
+
+exec:
+	@echo "Executing tool..."
+	@if [ -z "$(action)" ]; then \
+		echo "Error: action is required. Usage: make exec action=createuser"; \
+		exit 1; \
+	fi
+	go run cmd/tools/main.go $(action)
 
 sqlc:
 	@echo "Generating code with sqlc..."
