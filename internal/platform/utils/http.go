@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+
+	"github.com/art-vbst/art-backend/internal/platform/config"
 )
 
 func RespondJSON(w http.ResponseWriter, status int, data any) {
@@ -71,17 +73,20 @@ func SetRefreshCookie(w http.ResponseWriter, token string) {
 }
 
 func SetAuthCookie(w http.ResponseWriter, params *AuthCookieParams) {
+	env := config.Load()
+
 	cookie := &http.Cookie{
 		Name:     params.name,
 		Value:    params.token,
 		Path:     params.path,
+		Domain:   env.CookieDomain,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 		MaxAge:   params.maxAge,
 	}
 
-	if IsDebug() {
+	if config.IsDebug() {
 		cookie.Secure = false
 	}
 

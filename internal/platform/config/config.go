@@ -10,9 +10,9 @@ import (
 )
 
 type Config struct {
-	Debug               string
 	Port                string
 	FrontendUrl         string
+	CookieDomain        string
 	JwtSecret           string
 	DbUrl               string
 	StripeSecret        string
@@ -30,9 +30,9 @@ func Load() *Config {
 	}
 
 	config := Config{
-		Debug:               os.Getenv("DEBUG"),
 		Port:                os.Getenv("PORT"),
 		FrontendUrl:         os.Getenv("FRONTEND_URL"),
+		CookieDomain:        os.Getenv("COOKIE_DOMAIN"),
 		JwtSecret:           os.Getenv("JWT_SECRET"),
 		DbUrl:               os.Getenv("DB_URL"),
 		StripeSecret:        os.Getenv("STRIPE_SECRET"),
@@ -51,6 +51,10 @@ func Load() *Config {
 	ensureRequiredVars(&config)
 
 	return &config
+}
+
+func IsDebug() bool {
+	return os.Getenv("DEBUG") == "true"
 }
 
 func ensureRequiredVars(config *Config) {

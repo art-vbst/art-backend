@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	"github.com/art-vbst/art-backend/internal/platform/config"
-	"github.com/art-vbst/art-backend/internal/platform/utils"
 )
 
 type Mailer interface {
@@ -52,7 +51,7 @@ func (m *Mailgun) SendEmail(to, subject, body string) error {
 }
 
 func (m *Mailgun) getSafeTo(intended string) string {
-	if !utils.IsDebug() {
+	if !config.IsDebug() {
 		return intended
 	}
 

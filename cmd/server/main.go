@@ -14,22 +14,22 @@ import (
 
 func main() {
 	ctx := context.Background()
-	config := config.Load()
+	env := config.Load()
 
-	pool := pooler.GetDbConnectionPool(ctx, config)
+	pool := pooler.GetDbConnectionPool(ctx, env)
 	defer pool.Close()
 	store := store.New(pool)
 
-	mailer := mailer.New(config)
+	mailer := mailer.New(env)
 
-	r := router.New(store, config, mailer).CreateRouter()
+	r := router.New(store, env, mailer).CreateRouter()
 
-	if config.Debug == "true" {
+	if config.IsDebug() {
 		log.Printf("[WARNING] debug mode enabled")
 	}
 
-	log.Printf("Server starting on :%s", config.Port)
-	if err := http.ListenAndServe(":"+config.Port, r); err != nil {
+	log.Printf("Server starting on :%s", env.Port)
+	if err := http.ListenAndServe(":"+env.Port, r); err != nil {
 		log.Fatal(err)
 	}
 }
