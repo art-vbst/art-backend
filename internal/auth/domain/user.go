@@ -9,8 +9,8 @@ type UserWithHash struct {
 }
 
 type User struct {
-	ID    uuid.UUID
-	Email string
+	ID    uuid.UUID `json:"id"`
+	Email string    `json:"email"`
 }
 
 func StripHash(withHash *UserWithHash) *User {

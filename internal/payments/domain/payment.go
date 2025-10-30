@@ -16,12 +16,12 @@ const (
 )
 
 type Payment struct {
-	ID                    uuid.UUID
-	OrderID               uuid.UUID
-	StripePaymentIntentID string
-	Status                generated.PaymentStatus
-	TotalCents            int32
-	Currency              string
-	CreatedAt             time.Time
-	PaidAt                time.Time
+	ID                    uuid.UUID               `json:"id"`
+	OrderID               uuid.UUID               `json:"order_id"`
+	StripePaymentIntentID string                  `json:"stripe_payment_intent_id"`
+	Status                generated.PaymentStatus `json:"status"`
+	TotalCents            int32                   `json:"total_cents"`
+	Currency              string                  `json:"currency"`
+	CreatedAt             time.Time               `json:"created_at"`
+	PaidAt                time.Time               `json:"paid_at"`
 }
