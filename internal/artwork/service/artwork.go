@@ -32,6 +32,10 @@ func (s *ArtworkService) List(ctx context.Context) ([]domain.Artwork, error) {
 	return artworks, nil
 }
 
+func (s *ArtworkService) Create(ctx context.Context, body *domain.CreateRequest) (*domain.Artwork, error) {
+	return s.repo.CreateArtwork(ctx, body)
+}
+
 func (s *ArtworkService) Detail(ctx context.Context, idString string) (*domain.Artwork, error) {
 	id, err := uuid.Parse(idString)
 	if err != nil {

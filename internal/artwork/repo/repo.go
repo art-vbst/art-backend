@@ -10,6 +10,7 @@ import (
 
 type Repo interface {
 	ListArtworks(ctx context.Context) ([]domain.Artwork, error)
+	CreateArtwork(ctx context.Context, body *domain.CreateRequest) (*domain.Artwork, error)
 	GetArtworkDetail(ctx context.Context, id uuid.UUID) (*domain.Artwork, error)
 	GetArtworkCheckoutData(ctx context.Context, ids []uuid.UUID) ([]domain.Artwork, error)
 	UpdateArtworksForPendingOrder(ctx context.Context, orderID uuid.UUID, ids []uuid.UUID) error

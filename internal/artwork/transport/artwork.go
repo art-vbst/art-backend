@@ -1,10 +1,12 @@
 package transport
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 
+	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/artwork/repo"
 	"github.com/art-vbst/art-backend/internal/artwork/service"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
@@ -24,6 +26,7 @@ func NewArtworkHandler(db *store.Store) *ArtworkHandler {
 func (h *ArtworkHandler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", h.list)
+	r.Post("/", h.create)
 	r.Get("/{id}", h.detail)
 	return r
 }
@@ -36,6 +39,22 @@ func (h *ArtworkHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondJSON(w, http.StatusOK, artworks)
+}
+
+func (h *ArtworkHandler) create(w http.ResponseWriter, r *http.Request) {
+	var body domain.CreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	artwork, err := h.service.Create(r.Context(), &body)
+	if err != nil {
+		handleArtworkServiceError(w, err)
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, artwork)
 }
 
 func (h *ArtworkHandler) detail(w http.ResponseWriter, r *http.Request) {

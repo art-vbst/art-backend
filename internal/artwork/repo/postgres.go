@@ -7,6 +7,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/platform/db/generated"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -21,6 +22,49 @@ func (p *Postgres) ListArtworks(ctx context.Context) ([]domain.Artwork, error) {
 		return nil, err
 	}
 	return toDomainArtworkListRow(artworks), nil
+}
+
+func (p *Postgres) CreateArtwork(ctx context.Context, body *domain.CreateRequest) (*domain.Artwork, error) {
+	var created *domain.Artwork
+
+	err := p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		width, err := utils.NumericFromFloat(body.WidthInches)
+		if err != nil {
+			return err
+		}
+
+		height, err := utils.NumericFromFloat(body.HeightInches)
+		if err != nil {
+			return err
+		}
+
+		payload := generated.CreateArtworkParams{
+			Title:          body.Title,
+			PaintingNumber: body.PaintingNumber,
+			PaintingYear:   body.PaintingYear,
+			WidthInches:    width,
+			HeightInches:   height,
+			PriceCents:     int32(body.PriceCents),
+			Paper:          &body.Paper,
+			Status:         body.Status,
+			Medium:         body.Medium,
+			Category:       body.Category,
+		}
+
+		row, err := q.CreateArtwork(ctx, payload)
+		if err != nil {
+			return err
+		}
+
+		created = toDomainArtwork(&row)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 func (p *Postgres) GetArtworkDetail(ctx context.Context, id uuid.UUID) (*domain.Artwork, error) {
@@ -130,6 +174,28 @@ func toDomainArtworkCheckoutListRow(rows []generated.ListArtworkStripeDataRow) [
 	}
 
 	return artworks
+}
+
+func toDomainArtwork(row *generated.Artwork) *domain.Artwork {
+	widthInches, _ := row.WidthInches.Float64Value()
+	heightInches, _ := row.HeightInches.Float64Value()
+
+	return &domain.Artwork{
+		ID:             row.ID,
+		Title:          row.Title,
+		PaintingNumber: row.PaintingNumber,
+		PaintingYear:   row.PaintingYear,
+		WidthInches:    widthInches.Float64,
+		HeightInches:   heightInches.Float64,
+		PriceCents:     row.PriceCents,
+		Paper:          row.Paper,
+		SortOrder:      row.SortOrder,
+		SoldAt:         &row.SoldAt.Time,
+		Status:         row.Status,
+		Medium:         row.Medium,
+		Category:       row.Category,
+		CreatedAt:      row.CreatedAt.Time,
+	}
 }
 
 func toDomainArtworkDetailRows(rows []generated.GetArtworkWithImagesRow) *domain.Artwork {

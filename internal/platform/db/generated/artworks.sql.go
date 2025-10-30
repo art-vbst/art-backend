@@ -21,8 +21,6 @@ INSERT INTO artworks (
         height_inches,
         price_cents,
         paper,
-        sort_order,
-        sold_at,
         status,
         medium,
         category
@@ -37,26 +35,22 @@ VALUES (
         $7,
         $8,
         $9,
-        $10,
-        $11,
-        $12
+        $10
     )
 RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
 `
 
 type CreateArtworkParams struct {
-	Title          string           `db:"title" json:"title"`
-	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
-	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
-	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
-	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
-	PriceCents     int32            `db:"price_cents" json:"price_cents"`
-	Paper          *bool            `db:"paper" json:"paper"`
-	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
-	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
-	Status         ArtworkStatus    `db:"status" json:"status"`
-	Medium         ArtworkMedium    `db:"medium" json:"medium"`
-	Category       ArtworkCategory  `db:"category" json:"category"`
+	Title          string          `db:"title" json:"title"`
+	PaintingNumber *int32          `db:"painting_number" json:"painting_number"`
+	PaintingYear   *int32          `db:"painting_year" json:"painting_year"`
+	WidthInches    pgtype.Numeric  `db:"width_inches" json:"width_inches"`
+	HeightInches   pgtype.Numeric  `db:"height_inches" json:"height_inches"`
+	PriceCents     int32           `db:"price_cents" json:"price_cents"`
+	Paper          *bool           `db:"paper" json:"paper"`
+	Status         ArtworkStatus   `db:"status" json:"status"`
+	Medium         ArtworkMedium   `db:"medium" json:"medium"`
+	Category       ArtworkCategory `db:"category" json:"category"`
 }
 
 func (q *Queries) CreateArtwork(ctx context.Context, arg CreateArtworkParams) (Artwork, error) {
@@ -68,8 +62,6 @@ func (q *Queries) CreateArtwork(ctx context.Context, arg CreateArtworkParams) (A
 		arg.HeightInches,
 		arg.PriceCents,
 		arg.Paper,
-		arg.SortOrder,
-		arg.SoldAt,
 		arg.Status,
 		arg.Medium,
 		arg.Category,

@@ -7,8 +7,6 @@ INSERT INTO artworks (
         height_inches,
         price_cents,
         paper,
-        sort_order,
-        sold_at,
         status,
         medium,
         category
@@ -23,9 +21,7 @@ VALUES (
         $7,
         $8,
         $9,
-        $10,
-        $11,
-        $12
+        $10
     )
 RETURNING *;
 
