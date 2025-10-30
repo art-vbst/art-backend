@@ -7,7 +7,6 @@ import (
 
 	"github.com/art-vbst/art-backend/internal/auth/domain"
 	"github.com/art-vbst/art-backend/internal/auth/repo"
-	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/google/uuid"
 )
@@ -20,22 +19,16 @@ var (
 
 type AuthService struct {
 	repo repo.Repo
-	env  *config.Config
 }
 
-func New(repo repo.Repo, env *config.Config) *AuthService {
-	return &AuthService{repo: repo, env: env}
+func New(repo repo.Repo) *AuthService {
+	return &AuthService{repo: repo}
 }
 
 type LoginData struct {
 	User         *domain.User
 	RefreshToken string
 	AccessToken  string
-}
-
-type RefreshData struct {
-	AccessToken  string
-	RefreshToken string
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password string) (*LoginData, error) {
@@ -61,15 +54,6 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*Login
 	}
 
 	return data, nil
-}
-
-func (s *AuthService) Authenticate(ctx context.Context, token string) (*domain.User, error) {
-	claims, err := utils.ParseAccessToken(s.env.JwtSecret, token)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.GetUser(ctx, claims.UserID)
 }
 
 func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (*domain.User, error) {
@@ -98,7 +82,7 @@ func (s *AuthService) GetValidatedUser(ctx context.Context, email, password stri
 	return domain.StripHash(user), nil
 }
 
-func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*RefreshData, error) {
+func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*LoginData, error) {
 	token, err := s.GetRefreshTokenFromString(ctx, tokenStr)
 	if err != nil {
 		return nil, err
@@ -119,7 +103,8 @@ func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*RefreshDat
 		return nil, err
 	}
 
-	data := &RefreshData{
+	data := &LoginData{
+		User:         user,
 		RefreshToken: refresh,
 		AccessToken:  access,
 	}
@@ -128,7 +113,7 @@ func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*RefreshDat
 }
 
 func (s *AuthService) GetRefreshTokenFromString(ctx context.Context, presentedToken string) (*domain.RefreshToken, error) {
-	claims, err := utils.ParseRefreshToken(s.env.JwtSecret, presentedToken)
+	claims, err := utils.ParseRefreshToken(presentedToken)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +156,7 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID) error {
 }
 
 func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, expiresAt *time.Time) (string, error) {
-	tokenString, claims, err := utils.CreateRefreshToken(s.env.JwtSecret, userID, expiresAt)
+	tokenString, claims, err := utils.CreateRefreshToken(userID, expiresAt)
 	if err != nil {
 		return "", err
 	}
@@ -201,5 +186,5 @@ func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, e
 }
 
 func (s *AuthService) issueAccessToken(user *domain.User) (string, error) {
-	return utils.CreateAccessToken(s.env.JwtSecret, user)
+	return utils.CreateAccessToken(user)
 }

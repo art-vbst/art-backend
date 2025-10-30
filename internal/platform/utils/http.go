@@ -94,7 +94,15 @@ func SetAuthCookie(w http.ResponseWriter, params *AuthCookieParams) {
 }
 
 func GetAccessCookie(w http.ResponseWriter, r *http.Request) (string, error) {
-	cookie, err := r.Cookie(AccessCookieName)
+	return GetSessionCookie(w, r, AccessCookieName)
+}
+
+func GetRefreshCookie(w http.ResponseWriter, r *http.Request) (string, error) {
+	return GetSessionCookie(w, r, RefreshCookieName)
+}
+
+func GetSessionCookie(w http.ResponseWriter, r *http.Request, name string) (string, error) {
+	cookie, err := r.Cookie(name)
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
 			RespondError(w, http.StatusUnauthorized, "unauthorized")

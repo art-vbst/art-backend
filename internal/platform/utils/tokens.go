@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/art-vbst/art-backend/internal/auth/domain"
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
 const (
 	Issuer            = "art-vbst/art-backend"
-	AccessExpiration  = 15 * time.Minute
+	AccessExpiration  = 1 * time.Minute
 	RefreshExpiration = 7 * 24 * time.Hour
 )
 
@@ -33,8 +34,9 @@ type RefreshClaims struct {
 	jwt.RegisteredClaims
 }
 
-func CreateAccessToken(secret string, user *domain.User) (string, error) {
-	byteSecret := []byte(secret)
+func CreateAccessToken(user *domain.User) (string, error) {
+	env := config.Load()
+	byteSecret := []byte(env.JwtSecret)
 
 	claims := AccessClaims{
 		user.ID,
@@ -53,8 +55,9 @@ func CreateAccessToken(secret string, user *domain.User) (string, error) {
 	return token.SignedString(byteSecret)
 }
 
-func CreateRefreshToken(secret string, userID uuid.UUID, existingExpiresAt *time.Time) (string, *RefreshClaims, error) {
-	byteSecret := []byte(secret)
+func CreateRefreshToken(userID uuid.UUID, existingExpiresAt *time.Time) (string, *RefreshClaims, error) {
+	env := config.Load()
+	byteSecret := []byte(env.JwtSecret)
 
 	expiresAt := time.Now().Add(RefreshExpiration)
 	if existingExpiresAt != nil {
@@ -83,12 +86,14 @@ func CreateRefreshToken(secret string, userID uuid.UUID, existingExpiresAt *time
 	return tokenString, &claims, nil
 }
 
-func ParseAccessToken(secret, tokenStr string) (*AccessClaims, error) {
+func ParseAccessToken(tokenStr string) (*AccessClaims, error) {
+	env := config.Load()
+
 	keyFunc := func(t *jwt.Token) (any, error) {
 		if t.Method.Alg() != jwt.SigningMethodHS512.Alg() {
 			return nil, ErrBadAlgorithm
 		}
-		return []byte(secret), nil
+		return []byte(env.JwtSecret), nil
 	}
 
 	claims := &AccessClaims{}
@@ -112,12 +117,14 @@ func ParseAccessToken(secret, tokenStr string) (*AccessClaims, error) {
 	return claims, nil
 }
 
-func ParseRefreshToken(secret, tokenStr string) (*RefreshClaims, error) {
+func ParseRefreshToken(tokenStr string) (*RefreshClaims, error) {
+	env := config.Load()
+
 	keyFunc := func(t *jwt.Token) (any, error) {
 		if t.Method.Alg() != jwt.SigningMethodHS512.Alg() {
 			return nil, ErrBadAlgorithm
 		}
-		return []byte(secret), nil
+		return []byte(env.JwtSecret), nil
 	}
 
 	claims := &RefreshClaims{}

@@ -57,7 +57,7 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 }
 
 func (s *RouterService) registerRoutes(r *chi.Mux) {
-	authHandler := auth.New(s.db, s.config)
+	authHandler := auth.New(s.db)
 	r.Mount("/auth", authHandler.Routes())
 
 	artworkHandler := artwork.NewArtworkHandler(s.db)

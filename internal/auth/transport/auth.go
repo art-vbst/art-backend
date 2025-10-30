@@ -2,12 +2,11 @@ package transport
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
+	"github.com/art-vbst/art-backend/internal/auth/domain"
 	"github.com/art-vbst/art-backend/internal/auth/repo"
 	"github.com/art-vbst/art-backend/internal/auth/service"
-	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/go-chi/chi/v5"
@@ -17,17 +16,18 @@ type AuthHandler struct {
 	service *service.AuthService
 }
 
-func New(db *store.Store, env *config.Config) *AuthHandler {
+func New(db *store.Store) *AuthHandler {
 	repo := repo.New(db)
-	service := service.New(repo, env)
+	service := service.New(repo)
 	return &AuthHandler{service: service}
 }
 
 func (h *AuthHandler) Routes() chi.Router {
 	r := chi.NewRouter()
+	r.Get("/me", h.me)
+	r.Get("/refresh", h.refresh)
 	r.Post("/login", h.login)
 	r.Post("/logout", h.logout)
-	r.Get("/me", h.me)
 	return r
 }
 
@@ -43,16 +43,15 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginData, err := h.service.Login(r.Context(), req.Email, req.Password)
+	data, err := h.service.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
 
-	utils.SetAccessCookie(w, loginData.AccessToken)
-	utils.SetRefreshCookie(w, loginData.RefreshToken)
-
-	w.WriteHeader(http.StatusOK)
+	utils.SetAccessCookie(w, data.AccessToken)
+	utils.SetRefreshCookie(w, data.RefreshToken)
+	utils.RespondJSON(w, http.StatusOK, data.User)
 }
 
 func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
@@ -61,20 +60,19 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.Authenticate(r.Context(), token)
+	claims, err := utils.ParseAccessToken(token)
 	if err != nil {
-		h.handleServiceError(w, err)
+		utils.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	if err := h.service.Logout(r.Context(), user.ID); err != nil {
+	if err := h.service.Logout(r.Context(), claims.UserID); err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
 
 	utils.SetAccessCookie(w, "")
 	utils.SetRefreshCookie(w, "")
-
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -84,19 +82,35 @@ func (h *AuthHandler) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.Authenticate(r.Context(), token)
+	claims, err := utils.ParseAccessToken(token)
+	if err != nil {
+		utils.RespondError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, &domain.User{ID: claims.UserID, Email: claims.Email})
+}
+
+func (h *AuthHandler) refresh(w http.ResponseWriter, r *http.Request) {
+	token, err := utils.GetRefreshCookie(w, r)
+	if err != nil {
+		return
+	}
+
+	data, err := h.service.Refresh(r.Context(), token)
 	if err != nil {
 		h.handleServiceError(w, err)
 		return
 	}
 
-	utils.RespondJSON(w, http.StatusOK, user)
+	utils.SetAccessCookie(w, data.AccessToken)
+	utils.SetRefreshCookie(w, data.RefreshToken)
+	utils.RespondJSON(w, http.StatusOK, data.User)
 }
 
 func (h *AuthHandler) handleServiceError(w http.ResponseWriter, err error) {
 	switch {
 	default:
-		log.Printf("auth error: %v", err)
-		utils.RespondError(w, http.StatusInternalServerError, "An unknown error occurred")
+		utils.RespondServerError(w)
 	}
 }
