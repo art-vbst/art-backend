@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -15,6 +16,8 @@ var (
 	ErrInvalidPassword = errors.New("password validation failed")
 	ErrTokenMismatch   = errors.New("token mismatch")
 	ErrUserMismatch    = errors.New("user does not match token")
+	ErrUserNotFound    = errors.New("user not found")
+	ErrTokenNotFound   = errors.New("token not found")
 )
 
 type AuthService struct {
@@ -59,6 +62,9 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*Login
 func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	user, err := s.repo.GetUser(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
 		return nil, err
 	}
 
@@ -68,6 +74,9 @@ func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (*domain.User, 
 func (s *AuthService) GetValidatedUser(ctx context.Context, email, password string) (*domain.User, error) {
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
 		return nil, err
 	}
 
@@ -125,8 +134,12 @@ func (s *AuthService) GetRefreshTokenFromString(ctx context.Context, presentedTo
 
 	dbToken, err := s.repo.GetRefreshTokenByJti(ctx, jti)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrTokenNotFound
+		}
 		return nil, err
 	}
+
 	if claims.UserID != dbToken.UserID {
 		if err := s.repo.RevokeUserTokens(ctx, dbToken.UserID); err != nil {
 			return nil, err
@@ -138,6 +151,7 @@ func (s *AuthService) GetRefreshTokenFromString(ctx context.Context, presentedTo
 	if err != nil {
 		return nil, err
 	}
+
 	if !validated {
 		if err := s.repo.RevokeUserTokens(ctx, dbToken.UserID); err != nil {
 			return nil, err

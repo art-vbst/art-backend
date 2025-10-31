@@ -2,6 +2,7 @@ package transport
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/art-vbst/art-backend/internal/auth/domain"
@@ -110,6 +111,10 @@ func (h *AuthHandler) refresh(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) handleServiceError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, service.ErrUserNotFound):
+		utils.RespondError(w, http.StatusBadRequest, "bad request")
+	case errors.Is(err, service.ErrTokenNotFound):
+		utils.RespondError(w, http.StatusBadRequest, "bad request")
 	default:
 		utils.RespondServerError(w)
 	}
