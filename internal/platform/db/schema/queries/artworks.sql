@@ -58,7 +58,11 @@ ORDER BY i.created_at;
 
 -- name: ListArtworks :many
 SELECT a.*,
-    i.*
+    i.image_id,
+    COALESCE(i.image_url, '') as image_url,
+    i.image_width,
+    i.image_height,
+    i.image_created_at
 FROM artworks a
     LEFT JOIN LATERAL (
         SELECT id as image_id,

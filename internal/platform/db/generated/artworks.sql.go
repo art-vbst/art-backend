@@ -300,7 +300,11 @@ func (q *Queries) ListArtworkStripeData(ctx context.Context, dollar_1 []uuid.UUI
 
 const listArtworks = `-- name: ListArtworks :many
 SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at, a.order_id,
-    i.image_id, i.image_url, i.image_width, i.image_height, i.image_created_at
+    i.image_id,
+    COALESCE(i.image_url, '') as image_url,
+    i.image_width,
+    i.image_height,
+    i.image_created_at
 FROM artworks a
     LEFT JOIN LATERAL (
         SELECT id as image_id,

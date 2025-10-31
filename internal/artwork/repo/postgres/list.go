@@ -31,14 +31,17 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 		widthInches, _ := row.WidthInches.Float64Value()
 		heightInches, _ := row.HeightInches.Float64Value()
 
-		image := domain.Image{
-			ID:          row.ImageID,
-			ArtworkID:   row.ID,
-			IsMainImage: true,
-			ImageURL:    row.ImageUrl,
-			ImageWidth:  row.ImageWidth,
-			ImageHeight: row.ImageHeight,
-			CreatedAt:   row.ImageCreatedAt.Time,
+		image := domain.Image{}
+		if row.ImageID != uuid.Nil {
+			image = domain.Image{
+				ID:          row.ImageID,
+				ArtworkID:   row.ID,
+				IsMainImage: true,
+				ImageURL:    row.ImageUrl,
+				ImageWidth:  row.ImageWidth,
+				ImageHeight: row.ImageHeight,
+				CreatedAt:   row.ImageCreatedAt.Time,
+			}
 		}
 
 		artwork := domain.Artwork{

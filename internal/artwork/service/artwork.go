@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	ErrServer             = errors.New("unknown error")
 	ErrInvalidArtowrkUUID = errors.New("invalid artwork UUID")
 	ErrArtworkNotFound    = errors.New("artwork not found")
 )
@@ -26,7 +25,7 @@ func NewArtworkService(repo repo.Repo) *ArtworkService {
 func (s *ArtworkService) List(ctx context.Context) ([]domain.Artwork, error) {
 	artworks, err := s.repo.ListArtworks(ctx)
 	if err != nil {
-		return nil, ErrServer
+		return nil, err
 	}
 
 	return artworks, nil
@@ -44,7 +43,7 @@ func (s *ArtworkService) Detail(ctx context.Context, idString string) (*domain.A
 
 	artwork, err := s.repo.GetArtworkDetail(ctx, id)
 	if err != nil {
-		return nil, ErrServer
+		return nil, err
 	}
 	if artwork == nil {
 		return nil, ErrArtworkNotFound
