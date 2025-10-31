@@ -42,6 +42,10 @@ func (h *ArtworkHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ArtworkHandler) create(w http.ResponseWriter, r *http.Request) {
+	if _, err := utils.Authenticate(w, r); err != nil {
+		return
+	}
+
 	var body domain.CreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
+	"github.com/art-vbst/art-backend/internal/artwork/repo/postgres"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/google/uuid"
 )
@@ -18,5 +19,5 @@ type Repo interface {
 }
 
 func New(db *store.Store) Repo {
-	return &Postgres{db: db}
+	return postgres.New(db)
 }
