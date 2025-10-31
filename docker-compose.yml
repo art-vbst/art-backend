@@ -1,16 +1,16 @@
 services:
-  backend:
-    build:
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    env_file:
-      - .env
-    environment:
-      - DB_URL=postgresql://artuser:artpass@postgres:5432/artdb
-    depends_on:
-      postgres:
-        condition: service_healthy
+  # backend:
+  #   build:
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8080:8080"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - DB_URL=postgresql://artuser:artpass@postgres:5432/artdb
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
 
   postgres:
     image: postgres:17-alpine
