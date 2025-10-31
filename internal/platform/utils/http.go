@@ -108,9 +108,25 @@ func GetSessionCookie(w http.ResponseWriter, r *http.Request, name string) (stri
 			RespondError(w, http.StatusUnauthorized, "unauthorized")
 			return "", err
 		}
+
 		RespondError(w, http.StatusBadRequest, "bad request")
 		return "", err
 	}
 
 	return cookie.Value, nil
+}
+
+func Authenticate(w http.ResponseWriter, r *http.Request) (*AccessClaims, error) {
+	token, err := GetAccessCookie(w, r)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, err := ParseAccessToken(token)
+	if err != nil {
+		RespondError(w, http.StatusUnauthorized, "unauthorized")
+		return nil, err
+	}
+
+	return claims, nil
 }
