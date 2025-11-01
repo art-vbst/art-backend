@@ -28,7 +28,7 @@ CREATE TABLE artworks (
     height_inches DECIMAL(8, 4) NOT NULL,
     price_cents INTEGER NOT NULL,
     paper BOOLEAN DEFAULT FALSE,
-    sort_order INTEGER DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0,
     sold_at TIMESTAMP,
     status artwork_status NOT NULL,
     medium artwork_medium NOT NULL,

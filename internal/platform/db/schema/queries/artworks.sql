@@ -98,6 +98,26 @@ FROM artworks a
 WHERE a.id = ANY($1::uuid [])
     AND a.status = 'available';
 
+-- name: UpdateArtwork :one
+UPDATE artworks
+SET title = $2,
+    painting_number = $3,
+    painting_year = $4,
+    width_inches = $5,
+    height_inches = $6,
+    price_cents = $7,
+    paper = $8,
+    sort_order = $9,
+    status = $10,
+    medium = $11,
+    category = $12
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteArtwork :exec
+DELETE FROM artworks
+WHERE id = $1;
+
 -- name: UpdateArtworksForOrder :many
 UPDATE artworks
 SET status = 'pending',

@@ -46,7 +46,7 @@ type Artwork struct {
 	HeightInches   float64         `json:"height_inches"`
 	PriceCents     int32           `json:"price_cents"`
 	Paper          *bool           `json:"paper"`
-	SortOrder      *int32          `json:"sort_order"`
+	SortOrder      int32           `json:"sort_order"`
 	SoldAt         *time.Time      `json:"sold_at"`
 	Status         ArtworkStatus   `json:"status"`
 	Medium         ArtworkMedium   `json:"medium"`

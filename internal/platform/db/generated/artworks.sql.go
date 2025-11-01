@@ -88,6 +88,16 @@ func (q *Queries) CreateArtwork(ctx context.Context, arg CreateArtworkParams) (A
 	return i, err
 }
 
+const deleteArtwork = `-- name: DeleteArtwork :exec
+DELETE FROM artworks
+WHERE id = $1
+`
+
+func (q *Queries) DeleteArtwork(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteArtwork, id)
+	return err
+}
+
 const getArtwork = `-- name: GetArtwork :one
 SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at, a.order_id,
     i.image_id, i.image_url, i.image_width, i.image_height, i.image_created_at
@@ -116,7 +126,7 @@ type GetArtworkRow struct {
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
 	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
-	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
+	SortOrder      int32            `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
 	Status         ArtworkStatus    `db:"status" json:"status"`
 	Medium         ArtworkMedium    `db:"medium" json:"medium"`
@@ -183,7 +193,7 @@ type GetArtworkWithImagesRow struct {
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
 	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
-	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
+	SortOrder      int32            `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
 	Status         ArtworkStatus    `db:"status" json:"status"`
 	Medium         ArtworkMedium    `db:"medium" json:"medium"`
@@ -331,7 +341,7 @@ type ListArtworksRow struct {
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
 	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
-	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
+	SortOrder      int32            `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
 	Status         ArtworkStatus    `db:"status" json:"status"`
 	Medium         ArtworkMedium    `db:"medium" json:"medium"`
@@ -386,6 +396,75 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateArtwork = `-- name: UpdateArtwork :one
+UPDATE artworks
+SET title = $2,
+    painting_number = $3,
+    painting_year = $4,
+    width_inches = $5,
+    height_inches = $6,
+    price_cents = $7,
+    paper = $8,
+    sort_order = $9,
+    status = $10,
+    medium = $11,
+    category = $12
+WHERE id = $1
+RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
+`
+
+type UpdateArtworkParams struct {
+	ID             uuid.UUID       `db:"id" json:"id"`
+	Title          string          `db:"title" json:"title"`
+	PaintingNumber *int32          `db:"painting_number" json:"painting_number"`
+	PaintingYear   *int32          `db:"painting_year" json:"painting_year"`
+	WidthInches    pgtype.Numeric  `db:"width_inches" json:"width_inches"`
+	HeightInches   pgtype.Numeric  `db:"height_inches" json:"height_inches"`
+	PriceCents     int32           `db:"price_cents" json:"price_cents"`
+	Paper          *bool           `db:"paper" json:"paper"`
+	SortOrder      int32           `db:"sort_order" json:"sort_order"`
+	Status         ArtworkStatus   `db:"status" json:"status"`
+	Medium         ArtworkMedium   `db:"medium" json:"medium"`
+	Category       ArtworkCategory `db:"category" json:"category"`
+}
+
+func (q *Queries) UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (Artwork, error) {
+	row := q.db.QueryRow(ctx, updateArtwork,
+		arg.ID,
+		arg.Title,
+		arg.PaintingNumber,
+		arg.PaintingYear,
+		arg.WidthInches,
+		arg.HeightInches,
+		arg.PriceCents,
+		arg.Paper,
+		arg.SortOrder,
+		arg.Status,
+		arg.Medium,
+		arg.Category,
+	)
+	var i Artwork
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.PaintingNumber,
+		&i.PaintingYear,
+		&i.WidthInches,
+		&i.HeightInches,
+		&i.PriceCents,
+		&i.Paper,
+		&i.SortOrder,
+		&i.SoldAt,
+		&i.Status,
+		&i.Medium,
+		&i.Category,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.OrderID,
+	)
+	return i, err
 }
 
 const updateArtworkStatus = `-- name: UpdateArtworkStatus :many

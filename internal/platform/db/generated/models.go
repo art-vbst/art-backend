@@ -245,7 +245,7 @@ type Artwork struct {
 	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
 	PriceCents     int32            `db:"price_cents" json:"price_cents"`
 	Paper          *bool            `db:"paper" json:"paper"`
-	SortOrder      *int32           `db:"sort_order" json:"sort_order"`
+	SortOrder      int32            `db:"sort_order" json:"sort_order"`
 	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
 	Status         ArtworkStatus    `db:"status" json:"status"`
 	Medium         ArtworkMedium    `db:"medium" json:"medium"`

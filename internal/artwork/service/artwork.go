@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrInvalidArtowrkUUID = errors.New("invalid artwork UUID")
+	ErrInvalidArtworkUUID = errors.New("invalid artwork UUID")
 	ErrArtworkNotFound    = errors.New("artwork not found")
 )
 
@@ -31,14 +31,14 @@ func (s *ArtworkService) List(ctx context.Context) ([]domain.Artwork, error) {
 	return artworks, nil
 }
 
-func (s *ArtworkService) Create(ctx context.Context, body *domain.CreateRequest) (*domain.Artwork, error) {
+func (s *ArtworkService) Create(ctx context.Context, body *domain.ArtworkPayload) (*domain.Artwork, error) {
 	return s.repo.CreateArtwork(ctx, body)
 }
 
 func (s *ArtworkService) Detail(ctx context.Context, idString string) (*domain.Artwork, error) {
 	id, err := uuid.Parse(idString)
 	if err != nil {
-		return nil, ErrInvalidArtowrkUUID
+		return nil, ErrInvalidArtworkUUID
 	}
 
 	artwork, err := s.repo.GetArtworkDetail(ctx, id)
@@ -50,4 +50,22 @@ func (s *ArtworkService) Detail(ctx context.Context, idString string) (*domain.A
 	}
 
 	return artwork, nil
+}
+
+func (s *ArtworkService) Update(ctx context.Context, idString string, body *domain.ArtworkPayload) (*domain.Artwork, error) {
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		return nil, ErrInvalidArtworkUUID
+	}
+
+	return s.repo.UpdateArtwork(ctx, id, body)
+}
+
+func (s *ArtworkService) Delete(ctx context.Context, idString string) error {
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		return ErrInvalidArtworkUUID
+	}
+
+	return s.repo.DeleteArtwork(ctx, id)
 }

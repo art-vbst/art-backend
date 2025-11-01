@@ -1,6 +1,6 @@
 package domain
 
-type CreateRequest struct {
+type ArtworkPayload struct {
 	Title          string          `json:"title"`
 	PaintingNumber *int32          `json:"painting_number"`
 	PaintingYear   *int32          `json:"painting_year"`
@@ -8,6 +8,7 @@ type CreateRequest struct {
 	HeightInches   float64         `json:"height_inches"`
 	PriceCents     int             `json:"price_cents"`
 	Paper          bool            `json:"paper"`
+	SortOrder      int32           `json:"sort_order"`
 	Status         ArtworkStatus   `json:"status"`
 	Medium         ArtworkMedium   `json:"medium"`
 	Category       ArtworkCategory `json:"category"`

@@ -28,6 +28,8 @@ func (h *ArtworkHandler) Routes() chi.Router {
 	r.Get("/", h.list)
 	r.Post("/", h.create)
 	r.Get("/{id}", h.detail)
+	r.Put("/{id}", h.update)
+	r.Delete("/{id}", h.delete)
 	return r
 }
 
@@ -46,7 +48,7 @@ func (h *ArtworkHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body domain.CreateRequest
+	var body domain.ArtworkPayload
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -73,11 +75,48 @@ func (h *ArtworkHandler) detail(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusOK, artwork)
 }
 
+func (h *ArtworkHandler) update(w http.ResponseWriter, r *http.Request) {
+	if _, err := utils.Authenticate(w, r); err != nil {
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+
+	var body domain.ArtworkPayload
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	artwork, err := h.service.Update(r.Context(), id, &body)
+	if err != nil {
+		handleArtworkServiceError(w, err)
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, artwork)
+}
+
+func (h *ArtworkHandler) delete(w http.ResponseWriter, r *http.Request) {
+	if _, err := utils.Authenticate(w, r); err != nil {
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+
+	if err := h.service.Delete(r.Context(), id); err != nil {
+		handleArtworkServiceError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func handleArtworkServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrArtworkNotFound):
 		utils.RespondError(w, http.StatusNotFound, "Artwork not found")
-	case errors.Is(err, service.ErrInvalidArtowrkUUID):
+	case errors.Is(err, service.ErrInvalidArtworkUUID):
 		utils.RespondError(w, http.StatusNotFound, "Invalid artwork ID format")
 	default:
 		log.Printf("artwork service error: %v", err)

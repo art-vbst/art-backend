@@ -8,7 +8,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 )
 
-func (p *Postgres) CreateArtwork(ctx context.Context, body *domain.CreateRequest) (*domain.Artwork, error) {
+func (p *Postgres) CreateArtwork(ctx context.Context, body *domain.ArtworkPayload) (*domain.Artwork, error) {
 	var created *domain.Artwork
 
 	err := p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
@@ -37,7 +37,7 @@ func (p *Postgres) CreateArtwork(ctx context.Context, body *domain.CreateRequest
 	return created, nil
 }
 
-func (p *Postgres) toCreateArtworkParams(body *domain.CreateRequest) (*generated.CreateArtworkParams, error) {
+func (p *Postgres) toCreateArtworkParams(body *domain.ArtworkPayload) (*generated.CreateArtworkParams, error) {
 	width, err := utils.NumericFromFloat(body.WidthInches)
 	if err != nil {
 		return nil, err
