@@ -22,7 +22,11 @@ func (p *Postgres) CreateArtwork(ctx context.Context, body *domain.CreateRequest
 			return err
 		}
 
-		created = toDomainArtwork(&row)
+		created, err = toDomainArtwork(&row)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
 

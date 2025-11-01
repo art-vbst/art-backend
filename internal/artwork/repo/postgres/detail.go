@@ -2,10 +2,16 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/platform/db/generated"
 	"github.com/google/uuid"
+)
+
+var (
+	ErrNoRows = errors.New("no rows provided for detail conversion")
 )
 
 func (p *Postgres) GetArtworkDetail(ctx context.Context, id uuid.UUID) (*domain.Artwork, error) {
@@ -14,18 +20,30 @@ func (p *Postgres) GetArtworkDetail(ctx context.Context, id uuid.UUID) (*domain.
 		return nil, err
 	}
 
-	return p.toDetailDomainArtwork(artworkRows), nil
+	return p.toDetailDomainArtwork(artworkRows)
 }
 
-func (p *Postgres) toDetailDomainArtwork(rows []generated.GetArtworkWithImagesRow) *domain.Artwork {
+func (p *Postgres) toDetailDomainArtwork(rows []generated.GetArtworkWithImagesRow) (*domain.Artwork, error) {
 	if len(rows) == 0 {
-		return nil
+		return nil, ErrNoRows
 	}
 
 	artworkRow := rows[0]
 
-	widthInches, _ := artworkRow.WidthInches.Float64Value()
-	heightInches, _ := artworkRow.HeightInches.Float64Value()
+	widthInches, err := artworkRow.WidthInches.Float64Value()
+	if err != nil {
+		return nil, err
+	}
+
+	heightInches, err := artworkRow.HeightInches.Float64Value()
+	if err != nil {
+		return nil, err
+	}
+
+	var soldAt *time.Time
+	if artworkRow.SoldAt.Valid {
+		soldAt = &artworkRow.SoldAt.Time
+	}
 
 	artwork := &domain.Artwork{
 		ID:             artworkRow.ID,
@@ -37,7 +55,7 @@ func (p *Postgres) toDetailDomainArtwork(rows []generated.GetArtworkWithImagesRo
 		PriceCents:     artworkRow.PriceCents,
 		Paper:          artworkRow.Paper,
 		SortOrder:      artworkRow.SortOrder,
-		SoldAt:         &artworkRow.SoldAt.Time,
+		SoldAt:         soldAt,
 		Status:         artworkRow.Status,
 		Medium:         artworkRow.Medium,
 		Category:       artworkRow.Category,
@@ -45,7 +63,7 @@ func (p *Postgres) toDetailDomainArtwork(rows []generated.GetArtworkWithImagesRo
 		Images:         p.toDetailDomainImage(rows),
 	}
 
-	return artwork
+	return artwork, nil
 }
 
 func (p *Postgres) toDetailDomainImage(rows []generated.GetArtworkWithImagesRow) []domain.Image {

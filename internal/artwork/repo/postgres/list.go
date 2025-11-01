@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/platform/db/generated"
@@ -44,6 +45,11 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 			}
 		}
 
+		var soldAt *time.Time
+		if row.SoldAt.Valid {
+			soldAt = &row.SoldAt.Time
+		}
+
 		artwork := domain.Artwork{
 			ID:             row.ID,
 			Title:          row.Title,
@@ -54,7 +60,7 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 			PriceCents:     row.PriceCents,
 			Paper:          row.Paper,
 			SortOrder:      row.SortOrder,
-			SoldAt:         &row.SoldAt.Time,
+			SoldAt:         soldAt,
 			Status:         row.Status,
 			Medium:         row.Medium,
 			Category:       row.Category,
