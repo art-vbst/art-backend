@@ -8,6 +8,7 @@ package generated
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -15,16 +16,18 @@ const createImage = `-- name: CreateImage :one
 INSERT INTO images (
         artwork_id,
         image_url,
+        is_main_image,
         image_width,
         image_height
     )
-VALUES ($1, $2, $3, $4)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, artwork_id, is_main_image, image_url, image_width, image_height, created_at, updated_at
 `
 
 type CreateImageParams struct {
 	ArtworkID   pgtype.UUID `db:"artwork_id" json:"artwork_id"`
 	ImageUrl    string      `db:"image_url" json:"image_url"`
+	IsMainImage bool        `db:"is_main_image" json:"is_main_image"`
 	ImageWidth  *int32      `db:"image_width" json:"image_width"`
 	ImageHeight *int32      `db:"image_height" json:"image_height"`
 }
@@ -33,9 +36,48 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (Image
 	row := q.db.QueryRow(ctx, createImage,
 		arg.ArtworkID,
 		arg.ImageUrl,
+		arg.IsMainImage,
 		arg.ImageWidth,
 		arg.ImageHeight,
 	)
+	var i Image
+	err := row.Scan(
+		&i.ID,
+		&i.ArtworkID,
+		&i.IsMainImage,
+		&i.ImageUrl,
+		&i.ImageWidth,
+		&i.ImageHeight,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteImage = `-- name: DeleteImage :exec
+DELETE FROM images
+WHERE id = $1
+`
+
+func (q *Queries) DeleteImage(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteImage, id)
+	return err
+}
+
+const updateImage = `-- name: UpdateImage :one
+UPDATE images
+SET is_main_image = $2
+WHERE id = $1
+RETURNING id, artwork_id, is_main_image, image_url, image_width, image_height, created_at, updated_at
+`
+
+type UpdateImageParams struct {
+	ID          uuid.UUID `db:"id" json:"id"`
+	IsMainImage bool      `db:"is_main_image" json:"is_main_image"`
+}
+
+func (q *Queries) UpdateImage(ctx context.Context, arg UpdateImageParams) (Image, error) {
+	row := q.db.QueryRow(ctx, updateImage, arg.ID, arg.IsMainImage)
 	var i Image
 	err := row.Scan(
 		&i.ID,

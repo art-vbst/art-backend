@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/google/uuid"
+
 type ArtworkPayload struct {
 	Title          string          `json:"title"`
 	PaintingNumber *int32          `json:"painting_number"`
@@ -12,4 +14,12 @@ type ArtworkPayload struct {
 	Status         ArtworkStatus   `json:"status"`
 	Medium         ArtworkMedium   `json:"medium"`
 	Category       ArtworkCategory `json:"category"`
+}
+
+type CreateImagePayload struct {
+	ArtworkID   uuid.UUID
+	ImageURL    string
+	IsMainImage bool
+	ImageWidth  *int32
+	ImageHeight *int32
 }

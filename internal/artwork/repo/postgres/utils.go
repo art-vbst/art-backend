@@ -5,6 +5,7 @@ import (
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/platform/db/generated"
+	"github.com/google/uuid"
 )
 
 func toDomainArtwork(row *generated.Artwork) (*domain.Artwork, error) {
@@ -39,4 +40,15 @@ func toDomainArtwork(row *generated.Artwork) (*domain.Artwork, error) {
 		Category:       row.Category,
 		CreatedAt:      row.CreatedAt.Time,
 	}, nil
+}
+
+func toDomainImage(row *generated.Image) *domain.Image {
+	return &domain.Image{
+		ArtworkID:   uuid.UUID(row.ArtworkID.Bytes),
+		ID:          row.ID,
+		ImageURL:    row.ImageUrl,
+		IsMainImage: row.IsMainImage,
+		ImageWidth:  row.ImageWidth,
+		ImageHeight: row.ImageHeight,
+	}
 }

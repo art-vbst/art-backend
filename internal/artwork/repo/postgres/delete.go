@@ -12,3 +12,9 @@ func (p *Postgres) DeleteArtwork(ctx context.Context, id uuid.UUID) error {
 		return q.DeleteArtwork(ctx, id)
 	})
 }
+
+func (p *Postgres) DeleteImage(ctx context.Context, id uuid.UUID) error {
+	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		return q.DeleteImage(ctx, id)
+	})
+}

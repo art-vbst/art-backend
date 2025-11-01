@@ -19,6 +19,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteArtwork(ctx context.Context, id uuid.UUID) error
 	DeleteExpiredRefreshTokens(ctx context.Context) error
+	DeleteImage(ctx context.Context, id uuid.UUID) error
 	DeleteOrder(ctx context.Context, id uuid.UUID) error
 	GetArtwork(ctx context.Context, id uuid.UUID) (GetArtworkRow, error)
 	GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error)
@@ -32,6 +33,7 @@ type Querier interface {
 	UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (Artwork, error)
 	UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) ([]Artwork, error)
 	UpdateArtworksForOrder(ctx context.Context, arg UpdateArtworksForOrderParams) ([]Artwork, error)
+	UpdateImage(ctx context.Context, arg UpdateImageParams) (Image, error)
 	UpdateOrderAndShipping(ctx context.Context, arg UpdateOrderAndShippingParams) (UpdateOrderAndShippingRow, error)
 }
 
