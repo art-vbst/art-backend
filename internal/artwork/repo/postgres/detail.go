@@ -23,6 +23,14 @@ func (p *Postgres) GetArtworkDetail(ctx context.Context, id uuid.UUID) (*domain.
 	return p.toDetailDomainArtwork(artworkRows)
 }
 
+func (p *Postgres) GetImageDetail(ctx context.Context, id uuid.UUID) (*domain.Image, error) {
+	image, err := p.db.Queries().GetImage(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return toDomainImage(&image), nil
+}
+
 func (p *Postgres) toDetailDomainArtwork(rows []generated.GetArtworkWithImagesRow) (*domain.Artwork, error) {
 	if len(rows) == 0 {
 		return nil, ErrNoRows

@@ -10,6 +10,11 @@ INSERT INTO images (
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
+-- name: GetImage :one
+SELECT *
+FROM images
+WHERE id = $1;
+
 -- name: UpdateImage :one
 UPDATE images
 SET is_main_image = $2

@@ -68,6 +68,29 @@ func (q *Queries) DeleteImage(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getImage = `-- name: GetImage :one
+SELECT id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at, updated_at
+FROM images
+WHERE id = $1
+`
+
+func (q *Queries) GetImage(ctx context.Context, id uuid.UUID) (Image, error) {
+	row := q.db.QueryRow(ctx, getImage, id)
+	var i Image
+	err := row.Scan(
+		&i.ID,
+		&i.ArtworkID,
+		&i.IsMainImage,
+		&i.ObjectName,
+		&i.ImageUrl,
+		&i.ImageWidth,
+		&i.ImageHeight,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateImage = `-- name: UpdateImage :one
 UPDATE images
 SET is_main_image = $2

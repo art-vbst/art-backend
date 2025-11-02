@@ -35,7 +35,7 @@ func (s *GCS) Close() {
 }
 
 func (s *GCS) UploadMultipartFile(ctx context.Context, data *UploadFileData) (string, error) {
-	object := s.client.Bucket(s.bucketName).Object(
+	object := s.bucket().Object(
 		fmt.Sprintf("uploads/%d-%s", time.Now().UnixNano(), data.FileName),
 	).NewWriter(ctx)
 
@@ -51,4 +51,12 @@ func (s *GCS) UploadMultipartFile(ctx context.Context, data *UploadFileData) (st
 
 func (s *GCS) GetObjectURL(objectName string) string {
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.bucketName, objectName)
+}
+
+func (s *GCS) DeleteObject(ctx context.Context, objectName string) error {
+	return s.bucket().Object(objectName).Delete(ctx)
+}
+
+func (s *GCS) bucket() *gcs.BucketHandle {
+	return s.client.Bucket(s.bucketName)
 }

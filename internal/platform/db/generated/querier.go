@@ -22,6 +22,7 @@ type Querier interface {
 	DeleteImage(ctx context.Context, id uuid.UUID) error
 	DeleteOrder(ctx context.Context, id uuid.UUID) error
 	GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error)
+	GetImage(ctx context.Context, id uuid.UUID) (Image, error)
 	GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)

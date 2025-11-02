@@ -19,6 +19,7 @@ import (
 
 var (
 	ErrUnsupportedFormat = errors.New("unsupported format")
+	ErrInvalidArtID      = errors.New("artwork id does not match")
 )
 
 type ImageService struct {
@@ -54,7 +55,19 @@ func (s *ImageService) Update(ctx context.Context, id uuid.UUID, isMainImage boo
 	return s.repo.UpdateImage(ctx, id, isMainImage)
 }
 
-func (s *ImageService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *ImageService) Delete(ctx context.Context, artID, id uuid.UUID) error {
+	img, err := s.repo.GetImageDetail(ctx, id)
+	if err != nil {
+		return err
+	}
+	if img.ArtworkID != artID {
+		return ErrInvalidArtID
+	}
+
+	if err := s.provider.DeleteObject(ctx, img.ObjectName); err != nil {
+		return err
+	}
+
 	return s.repo.DeleteImage(ctx, id)
 }
 
