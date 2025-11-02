@@ -25,40 +25,10 @@ VALUES (
     )
 RETURNING *;
 
--- name: GetArtwork :one
-SELECT a.*,
-    i.*
-FROM artworks a
-    LEFT JOIN LATERAL (
-        SELECT id as image_id,
-            image_url,
-            image_width,
-            image_height,
-            created_at as image_created_at
-        FROM images
-        WHERE artwork_id = a.id
-        ORDER BY is_main_image DESC NULLS LAST,
-            created_at
-        LIMIT 1
-    ) i ON true
-WHERE a.id = $1;
-
--- name: GetArtworkWithImages :many
-SELECT a.*,
-    i.id as image_id,
-    i.is_main_image,
-    i.image_url,
-    i.image_width,
-    i.image_height,
-    i.created_at as image_created_at
-FROM artworks a
-    LEFT JOIN images i ON a.id = i.artwork_id
-WHERE a.id = $1
-ORDER BY i.created_at;
-
 -- name: ListArtworks :many
 SELECT a.*,
     i.image_id,
+    COALESCE(i.object_name, '') as object_name,
     COALESCE(i.image_url, '') as image_url,
     i.image_width,
     i.image_height,
@@ -66,6 +36,7 @@ SELECT a.*,
 FROM artworks a
     LEFT JOIN LATERAL (
         SELECT id as image_id,
+            object_name,
             image_url,
             image_width,
             image_height,
@@ -98,6 +69,20 @@ FROM artworks a
 WHERE a.id = ANY($1::uuid [])
     AND a.status = 'available';
 
+-- name: GetArtworkWithImages :many
+SELECT a.*,
+    i.id as image_id,
+    i.is_main_image,
+    i.object_name,
+    i.image_url,
+    i.image_width,
+    i.image_height,
+    i.created_at as image_created_at
+FROM artworks a
+    LEFT JOIN images i ON a.id = i.artwork_id
+WHERE a.id = $1
+ORDER BY i.created_at;
+
 -- name: UpdateArtwork :one
 UPDATE artworks
 SET title = $2,
@@ -114,10 +99,6 @@ SET title = $2,
 WHERE id = $1
 RETURNING *;
 
--- name: DeleteArtwork :exec
-DELETE FROM artworks
-WHERE id = $1;
-
 -- name: UpdateArtworksForOrder :many
 UPDATE artworks
 SET status = 'pending',
@@ -132,3 +113,7 @@ SET status = $2,
     updated_at = current_timestamp
 WHERE order_id = $1
 RETURNING *;
+
+-- name: DeleteArtwork :exec
+DELETE FROM artworks
+WHERE id = $1;

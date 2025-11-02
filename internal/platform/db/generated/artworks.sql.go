@@ -98,82 +98,11 @@ func (q *Queries) DeleteArtwork(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getArtwork = `-- name: GetArtwork :one
-SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at, a.order_id,
-    i.image_id, i.image_url, i.image_width, i.image_height, i.image_created_at
-FROM artworks a
-    LEFT JOIN LATERAL (
-        SELECT id as image_id,
-            image_url,
-            image_width,
-            image_height,
-            created_at as image_created_at
-        FROM images
-        WHERE artwork_id = a.id
-        ORDER BY is_main_image DESC NULLS LAST,
-            created_at
-        LIMIT 1
-    ) i ON true
-WHERE a.id = $1
-`
-
-type GetArtworkRow struct {
-	ID             uuid.UUID        `db:"id" json:"id"`
-	Title          string           `db:"title" json:"title"`
-	PaintingNumber *int32           `db:"painting_number" json:"painting_number"`
-	PaintingYear   *int32           `db:"painting_year" json:"painting_year"`
-	WidthInches    pgtype.Numeric   `db:"width_inches" json:"width_inches"`
-	HeightInches   pgtype.Numeric   `db:"height_inches" json:"height_inches"`
-	PriceCents     int32            `db:"price_cents" json:"price_cents"`
-	Paper          *bool            `db:"paper" json:"paper"`
-	SortOrder      int32            `db:"sort_order" json:"sort_order"`
-	SoldAt         pgtype.Timestamp `db:"sold_at" json:"sold_at"`
-	Status         ArtworkStatus    `db:"status" json:"status"`
-	Medium         ArtworkMedium    `db:"medium" json:"medium"`
-	Category       ArtworkCategory  `db:"category" json:"category"`
-	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
-	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
-	ImageID        uuid.UUID        `db:"image_id" json:"image_id"`
-	ImageUrl       string           `db:"image_url" json:"image_url"`
-	ImageWidth     *int32           `db:"image_width" json:"image_width"`
-	ImageHeight    *int32           `db:"image_height" json:"image_height"`
-	ImageCreatedAt pgtype.Timestamp `db:"image_created_at" json:"image_created_at"`
-}
-
-func (q *Queries) GetArtwork(ctx context.Context, id uuid.UUID) (GetArtworkRow, error) {
-	row := q.db.QueryRow(ctx, getArtwork, id)
-	var i GetArtworkRow
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.PaintingNumber,
-		&i.PaintingYear,
-		&i.WidthInches,
-		&i.HeightInches,
-		&i.PriceCents,
-		&i.Paper,
-		&i.SortOrder,
-		&i.SoldAt,
-		&i.Status,
-		&i.Medium,
-		&i.Category,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.OrderID,
-		&i.ImageID,
-		&i.ImageUrl,
-		&i.ImageWidth,
-		&i.ImageHeight,
-		&i.ImageCreatedAt,
-	)
-	return i, err
-}
-
 const getArtworkWithImages = `-- name: GetArtworkWithImages :many
 SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at, a.order_id,
     i.id as image_id,
     i.is_main_image,
+    i.object_name,
     i.image_url,
     i.image_width,
     i.image_height,
@@ -203,6 +132,7 @@ type GetArtworkWithImagesRow struct {
 	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
 	ImageID        pgtype.UUID      `db:"image_id" json:"image_id"`
 	IsMainImage    *bool            `db:"is_main_image" json:"is_main_image"`
+	ObjectName     *string          `db:"object_name" json:"object_name"`
 	ImageUrl       *string          `db:"image_url" json:"image_url"`
 	ImageWidth     *int32           `db:"image_width" json:"image_width"`
 	ImageHeight    *int32           `db:"image_height" json:"image_height"`
@@ -237,6 +167,7 @@ func (q *Queries) GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]Get
 			&i.OrderID,
 			&i.ImageID,
 			&i.IsMainImage,
+			&i.ObjectName,
 			&i.ImageUrl,
 			&i.ImageWidth,
 			&i.ImageHeight,
@@ -311,6 +242,7 @@ func (q *Queries) ListArtworkStripeData(ctx context.Context, dollar_1 []uuid.UUI
 const listArtworks = `-- name: ListArtworks :many
 SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at, a.order_id,
     i.image_id,
+    COALESCE(i.object_name, '') as object_name,
     COALESCE(i.image_url, '') as image_url,
     i.image_width,
     i.image_height,
@@ -318,6 +250,7 @@ SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.heig
 FROM artworks a
     LEFT JOIN LATERAL (
         SELECT id as image_id,
+            object_name,
             image_url,
             image_width,
             image_height,
@@ -350,6 +283,7 @@ type ListArtworksRow struct {
 	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
 	ImageID        uuid.UUID        `db:"image_id" json:"image_id"`
+	ObjectName     string           `db:"object_name" json:"object_name"`
 	ImageUrl       string           `db:"image_url" json:"image_url"`
 	ImageWidth     *int32           `db:"image_width" json:"image_width"`
 	ImageHeight    *int32           `db:"image_height" json:"image_height"`
@@ -383,6 +317,7 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
 			&i.UpdatedAt,
 			&i.OrderID,
 			&i.ImageID,
+			&i.ObjectName,
 			&i.ImageUrl,
 			&i.ImageWidth,
 			&i.ImageHeight,

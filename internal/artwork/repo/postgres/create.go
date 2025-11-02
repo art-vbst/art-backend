@@ -92,6 +92,7 @@ func (p *Postgres) toCreateArtworkParams(body *domain.ArtworkPayload) (*generate
 func (p *Postgres) toCreateImageParams(data *domain.CreateImagePayload) *generated.CreateImageParams {
 	return &generated.CreateImageParams{
 		ArtworkID:   pgtype.UUID{Bytes: data.ArtworkID, Valid: true},
+		ObjectName:  data.ObjectName,
 		ImageUrl:    data.ImageURL,
 		IsMainImage: data.IsMainImage,
 		ImageWidth:  data.ImageWidth,

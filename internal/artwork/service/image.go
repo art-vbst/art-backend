@@ -8,6 +8,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+	"log"
 	"mime/multipart"
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
@@ -37,10 +38,14 @@ type CreateImageData struct {
 func (s *ImageService) Create(ctx context.Context, data *CreateImageData) (*domain.Image, error) {
 	var err error
 
-	data.ImageURL, err = s.provider.UploadMultipartFile(ctx, &data.UploadFileData)
+	data.ObjectName, err = s.provider.UploadMultipartFile(ctx, &data.UploadFileData)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Print(data.ObjectName)
+
+	data.ImageURL = s.provider.GetObjectURL(data.ObjectName)
 
 	return s.repo.CreateImage(ctx, &data.CreateImagePayload)
 }

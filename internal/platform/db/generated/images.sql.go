@@ -15,17 +15,19 @@ import (
 const createImage = `-- name: CreateImage :one
 INSERT INTO images (
         artwork_id,
+        object_name,
         image_url,
         is_main_image,
         image_width,
         image_height
     )
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, artwork_id, is_main_image, image_url, image_width, image_height, created_at, updated_at
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at, updated_at
 `
 
 type CreateImageParams struct {
 	ArtworkID   pgtype.UUID `db:"artwork_id" json:"artwork_id"`
+	ObjectName  string      `db:"object_name" json:"object_name"`
 	ImageUrl    string      `db:"image_url" json:"image_url"`
 	IsMainImage bool        `db:"is_main_image" json:"is_main_image"`
 	ImageWidth  *int32      `db:"image_width" json:"image_width"`
@@ -35,6 +37,7 @@ type CreateImageParams struct {
 func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (Image, error) {
 	row := q.db.QueryRow(ctx, createImage,
 		arg.ArtworkID,
+		arg.ObjectName,
 		arg.ImageUrl,
 		arg.IsMainImage,
 		arg.ImageWidth,
@@ -45,6 +48,7 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (Image
 		&i.ID,
 		&i.ArtworkID,
 		&i.IsMainImage,
+		&i.ObjectName,
 		&i.ImageUrl,
 		&i.ImageWidth,
 		&i.ImageHeight,
@@ -68,7 +72,7 @@ const updateImage = `-- name: UpdateImage :one
 UPDATE images
 SET is_main_image = $2
 WHERE id = $1
-RETURNING id, artwork_id, is_main_image, image_url, image_width, image_height, created_at, updated_at
+RETURNING id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at, updated_at
 `
 
 type UpdateImageParams struct {
@@ -83,6 +87,7 @@ func (q *Queries) UpdateImage(ctx context.Context, arg UpdateImageParams) (Image
 		&i.ID,
 		&i.ArtworkID,
 		&i.IsMainImage,
+		&i.ObjectName,
 		&i.ImageUrl,
 		&i.ImageWidth,
 		&i.ImageHeight,

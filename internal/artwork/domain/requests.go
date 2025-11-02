@@ -18,6 +18,7 @@ type ArtworkPayload struct {
 
 type CreateImagePayload struct {
 	ArtworkID   uuid.UUID
+	ObjectName  string
 	ImageURL    string
 	IsMainImage bool
 	ImageWidth  *int32

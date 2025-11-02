@@ -124,12 +124,23 @@ WITH inserted_artworks AS (
 INSERT INTO images (
     artwork_id,
     is_main_image,
+    object_name,
     image_url,
     image_width,
     image_height
   )
 SELECT id,
   true,
+  CASE
+    WHEN title = 'Sunset Over the Mountains' THEN 'seed/artworks/101-sunset-over-the-mountains/main.jpg'
+    WHEN title = 'Portrait of a Woman' THEN 'seed/artworks/102-portrait-of-a-woman/main.jpg'
+    WHEN title = 'Urban Street Scene' THEN 'seed/artworks/103-urban-street-scene/main.jpg'
+    WHEN title = 'Beach at Dawn' THEN 'seed/artworks/104-beach-at-dawn/main.jpg'
+    WHEN title = 'Family Gathering' THEN 'seed/artworks/105-family-gathering/main.jpg'
+    WHEN title = 'Abstract Composition' THEN 'seed/artworks/106-abstract-composition/main.jpg'
+    WHEN title = 'Forest Path' THEN 'seed/artworks/107-forest-path/main.jpg'
+    WHEN title = 'Reclining Figure' THEN 'seed/artworks/108-reclining-figure/main.jpg'
+  END,
   CASE
     WHEN title = 'Sunset Over the Mountains' THEN 'https://picsum.photos/id/1015/1200/900'
     WHEN title = 'Portrait of a Woman' THEN 'https://picsum.photos/id/64/800/1000'
@@ -165,6 +176,12 @@ UNION ALL
 -- Add secondary images for some artworks
 SELECT id,
   false,
+  CASE
+    WHEN title = 'Sunset Over the Mountains' THEN 'seed/artworks/101-sunset-over-the-mountains/secondary-1.jpg'
+    WHEN title = 'Portrait of a Woman' THEN 'seed/artworks/102-portrait-of-a-woman/secondary-1.jpg'
+    WHEN title = 'Beach at Dawn' THEN 'seed/artworks/104-beach-at-dawn/secondary-1.jpg'
+    WHEN title = 'Forest Path' THEN 'seed/artworks/107-forest-path/secondary-1.jpg'
+  END,
   CASE
     WHEN title = 'Sunset Over the Mountains' THEN 'https://picsum.photos/id/1016/1200/900'
     WHEN title = 'Portrait of a Woman' THEN 'https://picsum.photos/id/65/800/1000'

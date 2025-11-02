@@ -46,9 +46,9 @@ func (s *GCS) UploadMultipartFile(ctx context.Context, data *UploadFileData) (st
 	}
 	object.Close()
 
-	return s.getObjectURL(object.Name), nil
+	return object.Name, nil
 }
 
-func (s *GCS) getObjectURL(objectName string) string {
+func (s *GCS) GetObjectURL(objectName string) string {
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.bucketName, objectName)
 }

@@ -1,12 +1,13 @@
 -- name: CreateImage :one
 INSERT INTO images (
         artwork_id,
+        object_name,
         image_url,
         is_main_image,
         image_width,
         image_height
     )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: UpdateImage :one

@@ -46,6 +46,7 @@ func toDomainImage(row *generated.Image) *domain.Image {
 	return &domain.Image{
 		ArtworkID:   uuid.UUID(row.ArtworkID.Bytes),
 		ID:          row.ID,
+		ObjectName:  row.ObjectName,
 		ImageURL:    row.ImageUrl,
 		IsMainImage: row.IsMainImage,
 		ImageWidth:  row.ImageWidth,

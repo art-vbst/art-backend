@@ -107,7 +107,6 @@ func (h *ImageHandler) parseCreateRequest(r *http.Request) (*service.CreateImage
 			IsMainImage: isMainImage,
 			ImageWidth:  width,
 			ImageHeight: height,
-			ImageURL:    "",
 		},
 	}, nil
 }

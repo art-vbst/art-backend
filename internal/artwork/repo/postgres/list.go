@@ -38,6 +38,7 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 				ID:          row.ImageID,
 				ArtworkID:   row.ID,
 				IsMainImage: true,
+				ObjectName:  row.ObjectName,
 				ImageURL:    row.ImageUrl,
 				ImageWidth:  row.ImageWidth,
 				ImageHeight: row.ImageHeight,

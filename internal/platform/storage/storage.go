@@ -13,7 +13,8 @@ type UploadFileData struct {
 
 type Provider interface {
 	Close()
-	UploadMultipartFile(ctx context.Context, data *UploadFileData) (string, error)
+	UploadMultipartFile(ctx context.Context, data *UploadFileData) (objectName string, err error)
+	GetObjectURL(objectName string) string
 }
 
 func NewProvider(ctx context.Context) Provider {

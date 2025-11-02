@@ -21,7 +21,6 @@ type Querier interface {
 	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteImage(ctx context.Context, id uuid.UUID) error
 	DeleteOrder(ctx context.Context, id uuid.UUID) error
-	GetArtwork(ctx context.Context, id uuid.UUID) (GetArtworkRow, error)
 	GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error)
 	GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)

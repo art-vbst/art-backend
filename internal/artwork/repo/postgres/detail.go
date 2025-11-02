@@ -76,20 +76,26 @@ func (p *Postgres) toDetailDomainImage(rows []generated.GetArtworkWithImagesRow)
 	for _, row := range rows {
 		imageID, _ := uuid.FromBytes(row.ImageID.Bytes[:])
 
-		imageURL := ""
-		if row.ImageUrl != nil {
-			imageURL = *row.ImageUrl
-		}
-
 		isMainImage := false
 		if row.IsMainImage != nil {
 			isMainImage = *row.IsMainImage
+		}
+
+		objectName := ""
+		if row.ObjectName != nil {
+			objectName = *row.ObjectName
+		}
+
+		imageURL := ""
+		if row.ImageUrl != nil {
+			imageURL = *row.ImageUrl
 		}
 
 		image := domain.Image{
 			ID:          imageID,
 			ArtworkID:   row.ID,
 			IsMainImage: isMainImage,
+			ObjectName:  objectName,
 			ImageURL:    imageURL,
 			ImageWidth:  row.ImageWidth,
 			ImageHeight: row.ImageHeight,
