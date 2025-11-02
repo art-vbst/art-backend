@@ -178,6 +178,166 @@ func (q *Queries) DeleteOrder(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getOrder = `-- name: GetOrder :one
+SELECT id, status, stripe_session_id, created_at
+FROM orders
+WHERE id = $1
+`
+
+func (q *Queries) GetOrder(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrder, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.StripeSessionID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getOrderPaymentRequirement = `-- name: GetOrderPaymentRequirement :one
+SELECT id, order_id, subtotal_cents, shipping_cents, total_cents, currency
+FROM payment_requirements
+WHERE order_id = $1
+`
+
+func (q *Queries) GetOrderPaymentRequirement(ctx context.Context, orderID uuid.UUID) (PaymentRequirement, error) {
+	row := q.db.QueryRow(ctx, getOrderPaymentRequirement, orderID)
+	var i PaymentRequirement
+	err := row.Scan(
+		&i.ID,
+		&i.OrderID,
+		&i.SubtotalCents,
+		&i.ShippingCents,
+		&i.TotalCents,
+		&i.Currency,
+	)
+	return i, err
+}
+
+const getOrderShippingDetail = `-- name: GetOrderShippingDetail :one
+SELECT id, order_id, email, name, line1, line2, city, state, postal, country
+FROM shipping_details
+WHERE order_id = $1
+`
+
+func (q *Queries) GetOrderShippingDetail(ctx context.Context, orderID uuid.UUID) (ShippingDetail, error) {
+	row := q.db.QueryRow(ctx, getOrderShippingDetail, orderID)
+	var i ShippingDetail
+	err := row.Scan(
+		&i.ID,
+		&i.OrderID,
+		&i.Email,
+		&i.Name,
+		&i.Line1,
+		&i.Line2,
+		&i.City,
+		&i.State,
+		&i.Postal,
+		&i.Country,
+	)
+	return i, err
+}
+
+const listOrders = `-- name: ListOrders :many
+SELECT id, status, stripe_session_id, created_at
+FROM orders
+`
+
+func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
+	rows, err := q.db.Query(ctx, listOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.StripeSessionID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPaymentRequirements = `-- name: ListPaymentRequirements :many
+SELECT id, order_id, subtotal_cents, shipping_cents, total_cents, currency
+FROM payment_requirements
+`
+
+func (q *Queries) ListPaymentRequirements(ctx context.Context) ([]PaymentRequirement, error) {
+	rows, err := q.db.Query(ctx, listPaymentRequirements)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PaymentRequirement
+	for rows.Next() {
+		var i PaymentRequirement
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.SubtotalCents,
+			&i.ShippingCents,
+			&i.TotalCents,
+			&i.Currency,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listShippingDetails = `-- name: ListShippingDetails :many
+SELECT id, order_id, email, name, line1, line2, city, state, postal, country
+FROM shipping_details
+`
+
+func (q *Queries) ListShippingDetails(ctx context.Context) ([]ShippingDetail, error) {
+	rows, err := q.db.Query(ctx, listShippingDetails)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ShippingDetail
+	for rows.Next() {
+		var i ShippingDetail
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.Email,
+			&i.Name,
+			&i.Line1,
+			&i.Line2,
+			&i.City,
+			&i.State,
+			&i.Postal,
+			&i.Country,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateOrderAndShipping = `-- name: UpdateOrderAndShipping :one
 WITH updated_order AS (
     UPDATE orders

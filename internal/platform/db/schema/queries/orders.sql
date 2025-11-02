@@ -74,6 +74,33 @@ FROM new_order,
     new_payment_requirement,
     new_shipping_details;
 
+-- name: ListOrders :many
+SELECT *
+FROM orders;
+
+-- name: ListShippingDetails :many
+SELECT *
+FROM shipping_details;
+
+-- name: ListPaymentRequirements :many
+SELECT *
+FROM payment_requirements;
+
+-- name: GetOrder :one
+SELECT *
+FROM orders
+WHERE id = $1;
+
+-- name: GetOrderShippingDetail :one
+SELECT *
+FROM shipping_details
+WHERE order_id = $1;
+
+-- name: GetOrderPaymentRequirement :one
+SELECT *
+FROM payment_requirements
+WHERE order_id = $1;
+
 -- name: UpdateOrderAndShipping :one
 WITH updated_order AS (
     UPDATE orders

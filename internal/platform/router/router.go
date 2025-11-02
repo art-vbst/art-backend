@@ -48,7 +48,7 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(middleware.Throttle(100))
 
-	allowedOrigins := []string{s.config.FrontendUrl, "https://checkout.stripe.com"}
+	allowedOrigins := []string{s.config.FrontendUrl, s.config.AdminUrl, "https://checkout.stripe.com"}
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,
@@ -70,6 +70,9 @@ func (s *RouterService) registerRoutes(r *chi.Mux) {
 	imageHandler := artwork.NewImageHandler(s.db, s.provider)
 	imagesRoute := fmt.Sprintf("/artworks/{%s}/images", artwork.ArtworkIDParam)
 	r.Mount(imagesRoute, imageHandler.Routes())
+
+	ordersHandler := payments.NewOrdersHandler(s.db)
+	r.Mount("/orders", ordersHandler.Routes())
 
 	checkoutHandler := payments.NewCheckoutHandler(s.db, s.config)
 	r.Mount("/checkout", checkoutHandler.Routes())

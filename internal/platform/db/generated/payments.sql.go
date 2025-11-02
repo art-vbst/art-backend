@@ -56,3 +56,72 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 	)
 	return i, err
 }
+
+const getOrderPayments = `-- name: GetOrderPayments :many
+SELECT id, order_id, stripe_payment_intent_id, status, total_cents, currency, created_at, paid_at
+FROM payments
+WHERE order_id = $1
+`
+
+func (q *Queries) GetOrderPayments(ctx context.Context, orderID uuid.UUID) ([]Payment, error) {
+	rows, err := q.db.Query(ctx, getOrderPayments, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Payment
+	for rows.Next() {
+		var i Payment
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.StripePaymentIntentID,
+			&i.Status,
+			&i.TotalCents,
+			&i.Currency,
+			&i.CreatedAt,
+			&i.PaidAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPayments = `-- name: ListPayments :many
+SELECT id, order_id, stripe_payment_intent_id, status, total_cents, currency, created_at, paid_at
+FROM payments
+`
+
+func (q *Queries) ListPayments(ctx context.Context) ([]Payment, error) {
+	rows, err := q.db.Query(ctx, listPayments)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Payment
+	for rows.Next() {
+		var i Payment
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.StripePaymentIntentID,
+			&i.Status,
+			&i.TotalCents,
+			&i.Currency,
+			&i.CreatedAt,
+			&i.PaidAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

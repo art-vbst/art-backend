@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Port                string
 	FrontendUrl         string
+	AdminUrl            string
 	CookieDomain        string
 	JwtSecret           string
 	DbUrl               string
@@ -33,6 +34,7 @@ func Load() *Config {
 	config := Config{
 		Port:                os.Getenv("PORT"),
 		FrontendUrl:         os.Getenv("FRONTEND_URL"),
+		AdminUrl:            os.Getenv("ADMIN_URL"),
 		CookieDomain:        os.Getenv("COOKIE_DOMAIN"),
 		JwtSecret:           os.Getenv("JWT_SECRET"),
 		DbUrl:               os.Getenv("DB_URL"),

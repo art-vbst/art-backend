@@ -9,3 +9,12 @@ INSERT INTO payments (
     )
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
+
+-- name: ListPayments :many
+SELECT *
+FROM payments;
+
+-- name: GetOrderPayments :many
+SELECT *
+FROM payments
+WHERE order_id = $1;

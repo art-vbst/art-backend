@@ -23,11 +23,19 @@ type Querier interface {
 	DeleteOrder(ctx context.Context, id uuid.UUID) error
 	GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error)
 	GetImage(ctx context.Context, id uuid.UUID) (Image, error)
+	GetOrder(ctx context.Context, id uuid.UUID) (Order, error)
+	GetOrderPaymentRequirement(ctx context.Context, orderID uuid.UUID) (PaymentRequirement, error)
+	GetOrderPayments(ctx context.Context, orderID uuid.UUID) ([]Payment, error)
+	GetOrderShippingDetail(ctx context.Context, orderID uuid.UUID) (ShippingDetail, error)
 	GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	ListArtworkStripeData(ctx context.Context, dollar_1 []uuid.UUID) ([]ListArtworkStripeDataRow, error)
 	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
+	ListOrders(ctx context.Context) ([]Order, error)
+	ListPaymentRequirements(ctx context.Context) ([]PaymentRequirement, error)
+	ListPayments(ctx context.Context) ([]Payment, error)
+	ListShippingDetails(ctx context.Context) ([]ShippingDetail, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error
 	RevokeRefreshToken(ctx context.Context, id uuid.UUID) error
 	SetMainImage(ctx context.Context, arg SetMainImageParams) error

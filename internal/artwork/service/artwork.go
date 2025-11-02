@@ -23,12 +23,7 @@ func NewArtworkService(repo repo.Repo) *ArtworkService {
 }
 
 func (s *ArtworkService) List(ctx context.Context) ([]domain.Artwork, error) {
-	artworks, err := s.repo.ListArtworks(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return artworks, nil
+	return s.repo.ListArtworks(ctx)
 }
 
 func (s *ArtworkService) Create(ctx context.Context, body *domain.ArtworkPayload) (*domain.Artwork, error) {
