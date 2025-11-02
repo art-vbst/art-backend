@@ -2,6 +2,7 @@ package transport
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -18,11 +19,6 @@ import (
 )
 
 const ArtworkIDParam = "artworkID"
-
-const (
-	attrImg    = "image"
-	attrIsMain = "is_main_image"
-)
 
 var (
 	ErrInvalidUUID     = errors.New("invalid UUID")
@@ -41,9 +37,15 @@ func NewImageHandler(db *store.Store, provider storage.Provider) *ImageHandler {
 func (h *ImageHandler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/", h.create)
+	r.Put("/{id}", h.update)
 	r.Delete("/{id}", h.delete)
 	return r
 }
+
+const (
+	attrImg    = "image"
+	attrIsMain = "is_main_image"
+)
 
 func (h *ImageHandler) create(w http.ResponseWriter, r *http.Request) {
 	if _, err := utils.Authenticate(w, r); err != nil {
@@ -82,7 +84,7 @@ func (h *ImageHandler) parseCreateRequest(r *http.Request) (*service.CreateImage
 	}
 
 	isMainVal := r.FormValue(attrIsMain)
-	isMainImage, err := strconv.ParseBool((isMainVal))
+	isMainImage, err := strconv.ParseBool(isMainVal)
 	if err != nil {
 		return nil, ErrInvalidFormData
 	}
@@ -110,6 +112,41 @@ func (h *ImageHandler) parseCreateRequest(r *http.Request) (*service.CreateImage
 			ImageHeight: height,
 		},
 	}, nil
+}
+
+type updatePayload struct {
+	IsMainImage string `json:"is_main_image"`
+}
+
+func (h *ImageHandler) update(w http.ResponseWriter, r *http.Request) {
+	if _, err := utils.Authenticate(w, r); err != nil {
+		return
+	}
+
+	id, idErr := uuid.Parse(chi.URLParam(r, "id"))
+	artID, artIDErr := uuid.Parse(chi.URLParam(r, ArtworkIDParam))
+	if idErr != nil || artIDErr != nil {
+		utils.RespondError(w, http.StatusBadRequest, "bad uuid")
+	}
+
+	var body updatePayload
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	isMainImage, err := strconv.ParseBool(body.IsMainImage)
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
+	}
+
+	img, err := h.service.Update(r.Context(), artID, id, isMainImage)
+	if err != nil {
+		handleImgServiceError(w, err)
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, img)
 }
 
 func (h *ImageHandler) delete(w http.ResponseWriter, r *http.Request) {

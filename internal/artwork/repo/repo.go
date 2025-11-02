@@ -17,6 +17,7 @@ type Repo interface {
 	GetImageDetail(ctx context.Context, id uuid.UUID) (*domain.Image, error)
 	UpdateArtwork(ctx context.Context, id uuid.UUID, payload *domain.ArtworkPayload) (*domain.Artwork, error)
 	UpdateImage(ctx context.Context, id uuid.UUID, isMainImage bool) (*domain.Image, error)
+	SetImageAsMain(ctx context.Context, artID, id uuid.UUID) error
 	DeleteArtwork(ctx context.Context, id uuid.UUID) error
 	DeleteImage(ctx context.Context, id uuid.UUID) error
 	GetArtworkCheckoutData(ctx context.Context, ids []uuid.UUID) ([]domain.Artwork, error)

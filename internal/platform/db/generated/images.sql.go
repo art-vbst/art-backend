@@ -91,6 +91,25 @@ func (q *Queries) GetImage(ctx context.Context, id uuid.UUID) (Image, error) {
 	return i, err
 }
 
+const setMainImage = `-- name: SetMainImage :exec
+UPDATE images
+SET is_main_image = CASE
+        WHEN id = $1 THEN TRUE
+        ELSE FALSE
+    END
+WHERE artwork_id = $2
+`
+
+type SetMainImageParams struct {
+	ID        uuid.UUID   `db:"id" json:"id"`
+	ArtworkID pgtype.UUID `db:"artwork_id" json:"artwork_id"`
+}
+
+func (q *Queries) SetMainImage(ctx context.Context, arg SetMainImageParams) error {
+	_, err := q.db.Exec(ctx, setMainImage, arg.ID, arg.ArtworkID)
+	return err
+}
+
 const updateImage = `-- name: UpdateImage :one
 UPDATE images
 SET is_main_image = $2

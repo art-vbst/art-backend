@@ -62,6 +62,16 @@ func (p *Postgres) UpdateImage(ctx context.Context, id uuid.UUID, isMainImage bo
 	return image, nil
 }
 
+func (p *Postgres) SetImageAsMain(ctx context.Context, artID, id uuid.UUID) error {
+	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		params := generated.SetMainImageParams{
+			ArtworkID: pgtype.UUID{Bytes: artID, Valid: true},
+			ID:        id,
+		}
+		return q.SetMainImage(ctx, params)
+	})
+}
+
 func (p *Postgres) UpdateArtworksForPendingOrder(ctx context.Context, orderId uuid.UUID, ids []uuid.UUID) error {
 	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
 		rows, err := q.UpdateArtworksForOrder(ctx, generated.UpdateArtworksForOrderParams{

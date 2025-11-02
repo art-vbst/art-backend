@@ -30,6 +30,7 @@ type Querier interface {
 	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error
 	RevokeRefreshToken(ctx context.Context, id uuid.UUID) error
+	SetMainImage(ctx context.Context, arg SetMainImageParams) error
 	UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (Artwork, error)
 	UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) ([]Artwork, error)
 	UpdateArtworksForOrder(ctx context.Context, arg UpdateArtworksForOrderParams) ([]Artwork, error)

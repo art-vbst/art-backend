@@ -8,7 +8,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"log"
 	"mime/multipart"
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
@@ -43,16 +42,38 @@ func (s *ImageService) Create(ctx context.Context, data *CreateImageData) (*doma
 	if err != nil {
 		return nil, err
 	}
-
-	log.Print(data.ObjectName)
-
 	data.ImageURL = s.provider.GetObjectURL(data.ObjectName)
 
-	return s.repo.CreateImage(ctx, &data.CreateImagePayload)
+	image, err := s.repo.CreateImage(ctx, &data.CreateImagePayload)
+	if err != nil {
+		return nil, err
+	}
+
+	if data.IsMainImage {
+		if err := s.repo.SetImageAsMain(ctx, image.ArtworkID, image.ID); err != nil {
+			return nil, err
+		}
+	}
+
+	return image, nil
 }
 
-func (s *ImageService) Update(ctx context.Context, id uuid.UUID, isMainImage bool) (*domain.Image, error) {
-	return s.repo.UpdateImage(ctx, id, isMainImage)
+func (s *ImageService) Update(ctx context.Context, artID, id uuid.UUID, isMainImage bool) (*domain.Image, error) {
+	image, err := s.repo.UpdateImage(ctx, id, isMainImage)
+	if err != nil {
+		return nil, err
+	}
+	if image.ArtworkID != artID {
+		return nil, ErrInvalidArtID
+	}
+
+	if isMainImage {
+		if err := s.repo.SetImageAsMain(ctx, artID, id); err != nil {
+			return nil, err
+		}
+	}
+
+	return image, nil
 }
 
 func (s *ImageService) Delete(ctx context.Context, artID, id uuid.UUID) error {

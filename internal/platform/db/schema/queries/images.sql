@@ -24,3 +24,11 @@ RETURNING *;
 -- name: DeleteImage :exec
 DELETE FROM images
 WHERE id = $1;
+
+-- name: SetMainImage :exec
+UPDATE images
+SET is_main_image = CASE
+        WHEN id = $1 THEN TRUE
+        ELSE FALSE
+    END
+WHERE artwork_id = $2;
