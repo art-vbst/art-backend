@@ -64,7 +64,7 @@ func IsDebug() bool {
 }
 
 func ensureRequiredVars(config *Config) {
-	optionalVars := []string{"Debug", "TestEmail"}
+	optionalVars := []string{"Debug", "TestEmail", "GCSAccessToken"}
 
 	typ := reflect.TypeOf(*config)
 	val := reflect.ValueOf(*config)
