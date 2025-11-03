@@ -31,8 +31,7 @@ RETURNING *;
 SELECT *
 FROM refresh_tokens
 WHERE jti = $1
-    AND revoked = FALSE
-    AND expires_at > now();
+    AND revoked = FALSE;
 
 -- name: RevokeRefreshToken :exec
 UPDATE refresh_tokens

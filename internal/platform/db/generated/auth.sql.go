@@ -87,7 +87,6 @@ SELECT id, user_id, token_hash, jti, created_at, expires_at, revoked
 FROM refresh_tokens
 WHERE jti = $1
     AND revoked = FALSE
-    AND expires_at > now()
 `
 
 func (q *Queries) GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (RefreshToken, error) {
