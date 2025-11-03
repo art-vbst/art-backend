@@ -13,15 +13,16 @@ import (
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_id, token_hash, jti, expires_at)
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, token_hash, jti, created_at, expires_at, revoked
+INSERT INTO refresh_tokens (user_id, token_hash, jti, session_id, expires_at)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, token_hash, jti, session_id, created_at, expires_at, revoked
 `
 
 type CreateRefreshTokenParams struct {
 	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
 	TokenHash string           `db:"token_hash" json:"token_hash"`
 	Jti       uuid.UUID        `db:"jti" json:"jti"`
+	SessionID uuid.UUID        `db:"session_id" json:"session_id"`
 	ExpiresAt pgtype.Timestamp `db:"expires_at" json:"expires_at"`
 }
 
@@ -30,6 +31,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 		arg.UserID,
 		arg.TokenHash,
 		arg.Jti,
+		arg.SessionID,
 		arg.ExpiresAt,
 	)
 	var i RefreshToken
@@ -38,6 +40,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 		&i.UserID,
 		&i.TokenHash,
 		&i.Jti,
+		&i.SessionID,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.Revoked,
@@ -83,7 +86,7 @@ func (q *Queries) DeleteExpiredRefreshTokens(ctx context.Context) error {
 }
 
 const getRefreshTokenByJTI = `-- name: GetRefreshTokenByJTI :one
-SELECT id, user_id, token_hash, jti, created_at, expires_at, revoked
+SELECT id, user_id, token_hash, jti, session_id, created_at, expires_at, revoked
 FROM refresh_tokens
 WHERE jti = $1
     AND revoked = FALSE
@@ -97,6 +100,7 @@ func (q *Queries) GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (Refr
 		&i.UserID,
 		&i.TokenHash,
 		&i.Jti,
+		&i.SessionID,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.Revoked,
@@ -165,5 +169,16 @@ WHERE id = $1
 
 func (q *Queries) RevokeRefreshToken(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, revokeRefreshToken, id)
+	return err
+}
+
+const revokeSessionRefreshTokens = `-- name: RevokeSessionRefreshTokens :exec
+UPDATE refresh_tokens
+SET revoked = TRUE
+WHERE session_id = $1
+`
+
+func (q *Queries) RevokeSessionRefreshTokens(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, revokeSessionRefreshTokens, sessionID)
 	return err
 }

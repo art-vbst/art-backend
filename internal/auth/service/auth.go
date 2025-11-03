@@ -92,17 +92,17 @@ func (s *AuthService) GetValidatedUser(ctx context.Context, email, password stri
 }
 
 func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*LoginData, error) {
-	token, err := s.GetRefreshTokenFromString(ctx, tokenStr)
+	existingToken, err := s.GetRefreshTokenFromString(ctx, tokenStr)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := s.GetUser(ctx, token.UserID)
+	user, err := s.GetUser(ctx, existingToken.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	refresh, err := s.issueRefreshToken(ctx, user.ID, &token.ExpiresAt)
+	refresh, err := s.issueRefreshToken(ctx, user.ID, existingToken)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,17 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, expiresAt *time.Time) (string, error) {
+func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, existingToken *domain.RefreshToken) (string, error) {
+	var expiresAt *time.Time
+	if existingToken != nil {
+		expiresAt = &existingToken.ExpiresAt
+	}
+
+	var sessionID *uuid.UUID
+	if existingToken != nil {
+		sessionID = &existingToken.SessionID
+	}
+
 	tokenString, claims, err := utils.CreateRefreshToken(userID, expiresAt)
 	if err != nil {
 		return "", err
@@ -188,6 +198,7 @@ func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, e
 	params := repo.RefreshTokenCreateParams{
 		Jti:       jti,
 		UserID:    userID,
+		SessionID: sessionID,
 		TokenHash: tokenHash,
 		ExpiresAt: claims.ExpiresAt.Time,
 	}

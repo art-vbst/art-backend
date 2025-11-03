@@ -1,3 +1,16 @@
+-- name: CreateUser :one
+INSERT INTO users (email, password_hash)
+VALUES ($1, $2)
+RETURNING id,
+    email,
+    password_hash,
+    created_at;
+
+-- name: CreateRefreshToken :one
+INSERT INTO refresh_tokens (user_id, token_hash, jti, session_id, expires_at)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
+
 -- name: GetUserByID :one
 SELECT id,
     email,
@@ -14,19 +27,6 @@ SELECT id,
 FROM users
 WHERE email = $1;
 
--- name: CreateUser :one
-INSERT INTO users (email, password_hash)
-VALUES ($1, $2)
-RETURNING id,
-    email,
-    password_hash,
-    created_at;
-
--- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_id, token_hash, jti, expires_at)
-VALUES ($1, $2, $3, $4)
-RETURNING *;
-
 -- name: GetRefreshTokenByJTI :one
 SELECT *
 FROM refresh_tokens
@@ -42,6 +42,11 @@ WHERE id = $1;
 UPDATE refresh_tokens
 SET revoked = TRUE
 WHERE user_id = $1;
+
+-- name: RevokeSessionRefreshTokens :exec
+UPDATE refresh_tokens
+SET revoked = TRUE
+WHERE session_id = $1;
 
 -- name: DeleteExpiredRefreshTokens :exec
 DELETE FROM refresh_tokens

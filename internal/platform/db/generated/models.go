@@ -299,6 +299,7 @@ type RefreshToken struct {
 	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
 	TokenHash string           `db:"token_hash" json:"token_hash"`
 	Jti       uuid.UUID        `db:"jti" json:"jti"`
+	SessionID uuid.UUID        `db:"session_id" json:"session_id"`
 	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
 	ExpiresAt pgtype.Timestamp `db:"expires_at" json:"expires_at"`
 	Revoked   bool             `db:"revoked" json:"revoked"`

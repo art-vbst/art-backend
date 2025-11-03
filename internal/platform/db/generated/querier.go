@@ -38,6 +38,7 @@ type Querier interface {
 	ListShippingDetails(ctx context.Context) ([]ShippingDetail, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error
 	RevokeRefreshToken(ctx context.Context, id uuid.UUID) error
+	RevokeSessionRefreshTokens(ctx context.Context, sessionID uuid.UUID) error
 	SetMainImage(ctx context.Context, arg SetMainImageParams) error
 	UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (Artwork, error)
 	UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) ([]Artwork, error)

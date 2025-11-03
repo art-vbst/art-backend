@@ -9,13 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type RefreshTokenCreateParams struct {
-	Jti       uuid.UUID
-	UserID    uuid.UUID
-	TokenHash string
-	ExpiresAt time.Time
-}
-
 type Repo interface {
 	CreateUser(ctx context.Context, email string, passwordHash string) (*domain.UserWithHash, error)
 	GetUser(ctx context.Context, id uuid.UUID) (*domain.UserWithHash, error)
@@ -28,4 +21,12 @@ type Repo interface {
 
 func New(db *store.Store) Repo {
 	return &Postgres{db: db}
+}
+
+type RefreshTokenCreateParams struct {
+	Jti       uuid.UUID
+	UserID    uuid.UUID
+	SessionID *uuid.UUID
+	TokenHash string
+	ExpiresAt time.Time
 }

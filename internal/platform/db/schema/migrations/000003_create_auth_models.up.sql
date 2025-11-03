@@ -9,7 +9,8 @@ CREATE TABLE refresh_tokens (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash TEXT NOT NULL,
-    jti UUID NOT NULL,
+    jti UUID UNIQUE NOT NULL,
+    session_id UUID NOT NULL,
     created_at TIMESTAMP DEFAULT now(),
     expires_at TIMESTAMP NOT NULL,
     revoked BOOLEAN NOT NULL DEFAULT FALSE
