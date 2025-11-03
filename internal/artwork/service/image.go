@@ -36,13 +36,12 @@ type CreateImageData struct {
 }
 
 func (s *ImageService) Create(ctx context.Context, data *CreateImageData) (*domain.Image, error) {
-	var err error
+	data.ObjectName = s.provider.GetObjectName(data.FileName)
+	data.ImageURL = s.provider.GetObjectURL(data.ObjectName)
 
-	data.ObjectName, err = s.provider.UploadMultipartFile(ctx, &data.UploadFileData)
-	if err != nil {
+	if err := s.provider.UploadObject(data.ObjectName, data.ContentType, data.File); err != nil {
 		return nil, err
 	}
-	data.ImageURL = s.provider.GetObjectURL(data.ObjectName)
 
 	image, err := s.repo.CreateImage(ctx, &data.CreateImagePayload)
 	if err != nil {
@@ -85,7 +84,7 @@ func (s *ImageService) Delete(ctx context.Context, artID, id uuid.UUID) error {
 		return ErrInvalidArtID
 	}
 
-	if err := s.provider.DeleteObject(ctx, img.ObjectName); err != nil {
+	if err := s.provider.DeleteObject(img.ObjectName); err != nil {
 		return err
 	}
 

@@ -1,8 +1,10 @@
 package storage
 
 import (
-	"context"
+	"io"
 	"mime/multipart"
+
+	"github.com/art-vbst/art-backend/internal/platform/config"
 )
 
 type UploadFileData struct {
@@ -13,11 +15,12 @@ type UploadFileData struct {
 
 type Provider interface {
 	Close()
-	UploadMultipartFile(ctx context.Context, data *UploadFileData) (objectName string, err error)
+	GetObjectName(fileName string) string
 	GetObjectURL(objectName string) string
-	DeleteObject(ctx context.Context, objectName string) error
+	UploadObject(objectName, contentType string, file io.Reader) error
+	DeleteObject(objectName string) error
 }
 
-func NewProvider(ctx context.Context) Provider {
-	return NewGCS(ctx)
+func NewProvider(env *config.Config) Provider {
+	return NewGCS(env)
 }

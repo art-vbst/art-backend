@@ -21,7 +21,7 @@ func main() {
 	defer pool.Close()
 	store := store.New(pool)
 
-	provider := storage.NewProvider(ctx)
+	provider := storage.NewProvider(env)
 	defer provider.Close()
 
 	mailer := mailer.New(env)

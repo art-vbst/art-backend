@@ -17,6 +17,7 @@ type Config struct {
 	JwtSecret           string
 	DbUrl               string
 	GCSBucketName       string
+	GCSAccessToken      string
 	StripeSecret        string
 	StripeWebhookSecret string
 	MailgunDomain       string
@@ -39,6 +40,7 @@ func Load() *Config {
 		JwtSecret:           os.Getenv("JWT_SECRET"),
 		DbUrl:               os.Getenv("DB_URL"),
 		GCSBucketName:       os.Getenv("GCS_BUCKET_NAME"),
+		GCSAccessToken:      os.Getenv("GCS_ACCESS_TOKEN"),
 		StripeSecret:        os.Getenv("STRIPE_SECRET"),
 		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 		MailgunDomain:       os.Getenv("MAILGUN_DOMAIN"),
