@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,15 +10,24 @@ import (
 	"time"
 
 	"github.com/art-vbst/art-backend/internal/platform/config"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type GCS struct {
 	bucketName  string
-	accessToken string
+	tokenSource oauth2.TokenSource
 }
 
 func NewGCS(env *config.Config) *GCS {
-	return &GCS{bucketName: env.GCSBucketName, accessToken: env.GCSAccessToken}
+	ctx := context.Background()
+
+	tokenSource, err := google.DefaultTokenSource(ctx, "https://www.googleapis.com/auth/devstorage.full_control")
+	if err != nil {
+		return &GCS{bucketName: env.GCSBucketName, tokenSource: nil}
+	}
+
+	return &GCS{bucketName: env.GCSBucketName, tokenSource: tokenSource}
 }
 
 func (s *GCS) Close() {
@@ -91,10 +101,23 @@ func (s *GCS) DeleteObject(objectName string) error {
 }
 
 func (s *GCS) getAccessToken() (string, error) {
-	if s.accessToken != "" {
-		return s.accessToken, nil
+	switch {
+	case s.tokenSource != nil:
+		return s.getAccessTokenFromDefaultCredentials()
+	default:
+		return s.getAccessTokenFromInternalAPI()
 	}
+}
 
+func (s *GCS) getAccessTokenFromDefaultCredentials() (string, error) {
+	token, err := s.tokenSource.Token()
+	if err != nil {
+		return "", err
+	}
+	return token.AccessToken, nil
+}
+
+func (s *GCS) getAccessTokenFromInternalAPI() (string, error) {
 	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", nil)
 	if err != nil {
 		return "", err
