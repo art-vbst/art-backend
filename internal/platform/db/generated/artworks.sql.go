@@ -333,6 +333,51 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
 	return items, nil
 }
 
+const selectArtworksForUpdate = `-- name: SelectArtworksForUpdate :many
+SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
+FROM artworks
+WHERE id = ANY($1::uuid [])
+    AND status = 'available' FOR
+UPDATE
+`
+
+func (q *Queries) SelectArtworksForUpdate(ctx context.Context, dollar_1 []uuid.UUID) ([]Artwork, error) {
+	rows, err := q.db.Query(ctx, selectArtworksForUpdate, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Artwork
+	for rows.Next() {
+		var i Artwork
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.PaintingNumber,
+			&i.PaintingYear,
+			&i.WidthInches,
+			&i.HeightInches,
+			&i.PriceCents,
+			&i.Paper,
+			&i.SortOrder,
+			&i.SoldAt,
+			&i.Status,
+			&i.Medium,
+			&i.Category,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.OrderID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateArtwork = `-- name: UpdateArtwork :one
 UPDATE artworks
 SET title = $2,
@@ -452,22 +497,22 @@ func (q *Queries) UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStat
 	return items, nil
 }
 
-const updateArtworksForOrder = `-- name: UpdateArtworksForOrder :many
+const updateArtworksAsPurchased = `-- name: UpdateArtworksAsPurchased :many
 UPDATE artworks
-SET status = 'pending',
-    order_id = $1,
-    updated_at = current_timestamp
-WHERE id = ANY($2::uuid [])
+SET status = 'sold',
+    sold_at = current_timestamp,
+    order_id = $2
+WHERE id = ANY($1::uuid [])
 RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
 `
 
-type UpdateArtworksForOrderParams struct {
+type UpdateArtworksAsPurchasedParams struct {
+	Column1 []uuid.UUID `db:"column_1" json:"column_1"`
 	OrderID pgtype.UUID `db:"order_id" json:"order_id"`
-	Column2 []uuid.UUID `db:"column_2" json:"column_2"`
 }
 
-func (q *Queries) UpdateArtworksForOrder(ctx context.Context, arg UpdateArtworksForOrderParams) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, updateArtworksForOrder, arg.OrderID, arg.Column2)
+func (q *Queries) UpdateArtworksAsPurchased(ctx context.Context, arg UpdateArtworksAsPurchasedParams) ([]Artwork, error) {
+	rows, err := q.db.Query(ctx, updateArtworksAsPurchased, arg.Column1, arg.OrderID)
 	if err != nil {
 		return nil, err
 	}

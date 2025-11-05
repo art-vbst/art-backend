@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -21,6 +22,7 @@ var (
 	ErrArtworksNotFound = errors.New("one or more artworks not found")
 	ErrEmptyRequest     = errors.New("artwork_ids cannot be empty")
 	ErrTooManyItems     = errors.New("too many items in cart")
+	ErrMetadataParse    = errors.New("failed to parse session metadata")
 )
 
 type CheckoutService struct {
@@ -79,10 +81,10 @@ func (s *CheckoutService) validateRequest(artworkIds []string) error {
 	return nil
 }
 
-func (s *CheckoutService) parseUUIDs(stringIds []string) ([]uuid.UUID, error) {
-	ids := make([]uuid.UUID, 0, len(stringIds))
+func (s *CheckoutService) parseUUIDs(idStrings []string) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, 0, len(idStrings))
 
-	for _, idString := range stringIds {
+	for _, idString := range idStrings {
 		id, err := uuid.Parse(idString)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrInvalidUUIDs, idString)
@@ -118,15 +120,6 @@ func (s *CheckoutService) createOrder(ctx context.Context, artworks []artdomain.
 		return nil, err
 	}
 
-	artworkIDs := make([]uuid.UUID, 0, len(artworks))
-	for _, artwork := range artworks {
-		artworkIDs = append(artworkIDs, artwork.ID)
-	}
-
-	if err := s.artrepo.UpdateArtworksForPendingOrder(ctx, order.ID, artworkIDs); err != nil {
-		return nil, err
-	}
-
 	return order, nil
 }
 
@@ -145,19 +138,27 @@ func (s *CheckoutService) getOrderPaymentRequirement(artworks []artdomain.Artwor
 }
 
 func (s *CheckoutService) createCheckoutSession(artworks []artdomain.Artwork, orderId uuid.UUID) (*stripe.CheckoutSession, error) {
-	lineItems := s.buildLineItems(artworks)
-	shippingAddress := s.buildShippingAddressParams()
-	shippingOptions := s.buildShippingOptionParams()
-	metadata := s.buildMetadata(orderId)
+	var (
+		lineItems         = s.buildLineItems(artworks)
+		shippingAddress   = s.buildShippingAddressParams()
+		shippingOptions   = s.buildShippingOptionParams()
+		paymentIntentData = s.buildPaymentIntentDataParams()
+	)
+
+	metadata, err := buildCheckoutSessionMetadata(artworks, orderId)
+	if err != nil {
+		return nil, err
+	}
 
 	params := &stripe.CheckoutSessionParams{
-		Mode:                      stripe.String(string(stripe.CheckoutSessionModePayment)),
-		SuccessURL:                stripe.String(s.config.FrontendUrl + "/checkout/return?success=true&order_id=" + orderId.String()),
-		CancelURL:                 stripe.String(s.config.FrontendUrl),
+		Metadata:                  metadata,
 		LineItems:                 lineItems,
 		ShippingAddressCollection: shippingAddress,
 		ShippingOptions:           shippingOptions,
-		Metadata:                  metadata,
+		PaymentIntentData:         paymentIntentData,
+		Mode:                      stripe.String(string(stripe.CheckoutSessionModePayment)),
+		SuccessURL:                stripe.String(s.config.FrontendUrl + "/checkout/return?success=true&order_id=" + orderId.String()),
+		CancelURL:                 stripe.String(s.config.FrontendUrl),
 	}
 
 	stripe.Key = s.config.StripeSecret
@@ -221,6 +222,56 @@ func (s *CheckoutService) buildShippingOptionParams() []*stripe.CheckoutSessionS
 	return []*stripe.CheckoutSessionShippingOptionParams{shippingOption}
 }
 
-func (s *CheckoutService) buildMetadata(orderId uuid.UUID) map[string]string {
-	return map[string]string{"order_id": orderId.String()}
+func (s *CheckoutService) buildPaymentIntentDataParams() *stripe.CheckoutSessionPaymentIntentDataParams {
+	return &stripe.CheckoutSessionPaymentIntentDataParams{
+		CaptureMethod: stripe.String(stripe.CheckoutSessionPaymentMethodOptionsAffirmCaptureMethodManual),
+	}
+}
+
+type CheckoutSessionMetadata struct {
+	OrderID    uuid.UUID   `json:"order_id"`
+	ArtworkIDs []uuid.UUID `json:"artwork_ids"`
+}
+
+func buildCheckoutSessionMetadata(artworks []artdomain.Artwork, orderId uuid.UUID) (map[string]string, error) {
+	artworkIDs := make([]uuid.UUID, len(artworks))
+	for i, artwork := range artworks {
+		artworkIDs[i] = artwork.ID
+	}
+
+	artworkIDsStr, err := json.Marshal(artworkIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{"order_id": orderId.String(), "artwork_ids": string(artworkIDsStr)}, nil
+}
+
+func getCheckoutSessionMetadata(session *stripe.CheckoutSession) (*CheckoutSessionMetadata, error) {
+	orderIDStr, ok := session.Metadata["order_id"]
+	if !ok || orderIDStr == "" {
+		return nil, ErrMetadataParse
+	}
+
+	orderID, err := uuid.Parse(orderIDStr)
+	if err != nil {
+		return nil, ErrMetadataParse
+	}
+
+	artworkIDsStr, ok := session.Metadata["artwork_ids"]
+	if !ok || artworkIDsStr == "" {
+		return nil, ErrMetadataParse
+	}
+
+	var artworkIDs []uuid.UUID
+	if err := json.Unmarshal([]byte(artworkIDsStr), &artworkIDs); err != nil {
+		return nil, ErrMetadataParse
+	}
+
+	metadata := &CheckoutSessionMetadata{
+		OrderID:    orderID,
+		ArtworkIDs: artworkIDs,
+	}
+
+	return metadata, nil
 }

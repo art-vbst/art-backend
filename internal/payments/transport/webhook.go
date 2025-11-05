@@ -31,7 +31,7 @@ const (
 
 func NewWebhookHandler(db *store.Store, env *config.Config, mailer mailer.Mailer) *WebhookHandler {
 	emails := service.NewEmailService(mailer, env.EmailSignature)
-	service := service.NewWebhookService(payrepo.New(db), artrepo.New(db), emails)
+	service := service.NewWebhookService(payrepo.New(db), artrepo.New(db), emails, env)
 	return &WebhookHandler{service: service, env: env}
 }
 
@@ -93,12 +93,18 @@ func parseCheckoutSession(event stripe.Event) (*stripe.CheckoutSession, error) {
 
 func handleServiceError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, service.ErrMetadataParse):
-		utils.RespondError(w, http.StatusInternalServerError, "Metadata parse error")
 	case errors.Is(err, service.ErrOrderNotFound):
 		utils.RespondError(w, http.StatusNotFound, "Order not found")
-	case errors.Is(err, service.ErrNotPaid):
-		utils.RespondError(w, http.StatusBadRequest, "Payment not successful")
+	case errors.Is(err, service.ErrArtworksNotAvailable):
+		utils.RespondError(w, http.StatusNotFound, "One or more artworks is not available for purchase")
+	case errors.Is(err, service.ErrIntentAlreadyProcessed):
+		utils.RespondError(w, http.StatusConflict, "Payment intent already processed")
+	case errors.Is(err, service.ErrMetadataParse):
+		utils.RespondError(w, http.StatusInternalServerError, "Metadata parse error")
+	case errors.Is(err, service.ErrBadIntentStatus):
+		utils.RespondError(w, http.StatusInternalServerError, "Unexpected payment intent status")
+	case errors.Is(err, service.ErrIntentProcessingFailure):
+		utils.RespondError(w, http.StatusInternalServerError, "Failed to process payment intent")
 	default:
 		log.Printf("webhook service error: %v", err)
 		utils.RespondServerError(w)

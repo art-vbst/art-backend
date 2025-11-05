@@ -5,40 +5,146 @@ import (
 	"errors"
 	"time"
 
-	artdomain "github.com/art-vbst/art-backend/internal/artwork/domain"
 	artrepo "github.com/art-vbst/art-backend/internal/artwork/repo"
 	paydomain "github.com/art-vbst/art-backend/internal/payments/domain"
 	payrepo "github.com/art-vbst/art-backend/internal/payments/repo"
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v83"
+	"github.com/stripe/stripe-go/v83/paymentintent"
 )
 
 var (
-	ErrMetadataParse = errors.New("failed to parse session metadata")
-	ErrOrderNotFound = errors.New("provided order id not found")
-	ErrNotPaid       = errors.New("payment intent not successful")
+	ErrOrderNotFound           = errors.New("provided order id not found")
+	ErrBadIntentStatus         = errors.New("unexpected payment intent status during capture/cancel")
+	ErrIntentAlreadyProcessed  = errors.New("payment intent has already been captured/cancled")
+	ErrIntentProcessingFailure = errors.New("failed to process payment intent")
+	ErrArtworksNotAvailable    = errors.New("one or more artworks not available for purchase")
 )
 
 type WebhookService struct {
 	payrepo payrepo.Repo
 	artrepo artrepo.Repo
 	emails  *EmailService
+	config  *config.Config
 }
 
-func NewWebhookService(payrepo payrepo.Repo, artrepo artrepo.Repo, emails *EmailService) *WebhookService {
-	return &WebhookService{payrepo: payrepo, artrepo: artrepo, emails: emails}
+func NewWebhookService(payrepo payrepo.Repo, artrepo artrepo.Repo, emails *EmailService, config *config.Config) *WebhookService {
+	return &WebhookService{payrepo: payrepo, artrepo: artrepo, emails: emails, config: config}
 }
 
 func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *stripe.CheckoutSession) error {
-	orderID, err := s.getMetadataOrderID(session)
+	metadata, err := getCheckoutSessionMetadata(session)
 	if err != nil {
 		return err
 	}
 
-	if session.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
-		return ErrNotPaid
+	order, payment := s.constructDomainData(metadata.OrderID, session)
+
+	err = s.artrepo.UpdateArtworksAsPurchased(ctx, metadata.ArtworkIDs, metadata.OrderID, func(selectedIDs []uuid.UUID) error {
+		if len(metadata.ArtworkIDs) != len(selectedIDs) {
+			return ErrArtworksNotAvailable
+		}
+
+		if err := s.capturePaymentIntent(session.PaymentIntent.ID); err != nil {
+			return err
+		}
+
+		if err := s.payrepo.UpdateOrderWithPayment(ctx, order, payment); err != nil {
+			return err
+		}
+
+		s.emails.SendOrderRecieved(order.ID, order.ShippingDetail.Email)
+		return nil
+	})
+
+	if err != nil {
+		s.cleanupSessionState(ctx, metadata.OrderID, session.PaymentIntent)
+		return err
 	}
 
+	return nil
+}
+
+func (s *WebhookService) HandleCheckoutExpired(ctx context.Context, session *stripe.CheckoutSession) error {
+	metadata, err := getCheckoutSessionMetadata(session)
+	if err != nil {
+		return err
+	}
+
+	if err := s.cleanupSessionState(ctx, metadata.OrderID, session.PaymentIntent); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *WebhookService) cleanupSessionState(ctx context.Context, orderID uuid.UUID, paymentIntent *stripe.PaymentIntent) error {
+	if paymentIntent != nil {
+		if err := s.cancelPaymentIntent(paymentIntent.ID); err != nil {
+			return err
+		}
+	}
+
+	if err := s.payrepo.DeleteOrder(ctx, orderID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *WebhookService) capturePaymentIntent(paymentIntentID string) error {
+	pi, err := s.getPaymentIntentForCapture(paymentIntentID, stripe.PaymentIntentStatusSucceeded)
+	if err != nil {
+		return err
+	}
+
+	pi, err = paymentintent.Capture(pi.ID, nil)
+	if err != nil {
+		return err
+	}
+	if pi.Status != stripe.PaymentIntentStatusSucceeded {
+		return ErrIntentProcessingFailure
+	}
+
+	return nil
+}
+
+func (s *WebhookService) cancelPaymentIntent(paymentIntentID string) error {
+	pi, err := s.getPaymentIntentForCapture(paymentIntentID, stripe.PaymentIntentStatusCanceled)
+	if err != nil {
+		return err
+	}
+
+	pi, err = paymentintent.Cancel(pi.ID, nil)
+	if err != nil {
+		return err
+	}
+	if pi.Status != stripe.PaymentIntentStatusCanceled {
+		return ErrIntentProcessingFailure
+	}
+
+	return nil
+}
+
+func (s *WebhookService) getPaymentIntentForCapture(paymentIntentID string, targetStatus stripe.PaymentIntentStatus) (*stripe.PaymentIntent, error) {
+	stripe.Key = s.config.StripeSecret
+
+	intent, err := paymentintent.Get(paymentIntentID, nil)
+	if err != nil {
+		return nil, err
+	}
+	if intent.Status == targetStatus {
+		return nil, ErrIntentAlreadyProcessed
+	}
+	if intent.Status != stripe.PaymentIntentStatusRequiresCapture {
+		return nil, ErrBadIntentStatus
+	}
+
+	return intent, nil
+}
+
+func (s *WebhookService) constructDomainData(orderID uuid.UUID, session *stripe.CheckoutSession) (*paydomain.Order, *paydomain.Payment) {
 	shipping := paydomain.ShippingDetail{
 		Email:   session.CustomerDetails.Email,
 		Name:    session.CollectedInformation.ShippingDetails.Name,
@@ -51,14 +157,14 @@ func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *st
 	}
 
 	order := paydomain.Order{
-		ID:              *orderID,
+		ID:              orderID,
 		StripeSessionID: &session.ID,
 		Status:          paydomain.OrderStatusProcessing,
 		ShippingDetail:  shipping,
 	}
 
 	payment := paydomain.Payment{
-		OrderID:               *orderID,
+		OrderID:               orderID,
 		StripePaymentIntentID: session.PaymentIntent.ID,
 		Status:                paydomain.PaymentStatusSuccess,
 		TotalCents:            int32(session.AmountTotal),
@@ -66,46 +172,5 @@ func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *st
 		PaidAt:                time.Now(),
 	}
 
-	if err := s.payrepo.UpdateOrderWithPayment(ctx, &order, &payment); err != nil {
-		return err
-	}
-
-	if err := s.artrepo.UpdateArtworkStatuses(ctx, *orderID, artdomain.ArtworkStatusSold); err != nil {
-		return err
-	}
-
-	s.emails.SendOrderRecieved(order.ID, shipping.Email)
-
-	return nil
-}
-
-func (s *WebhookService) HandleCheckoutExpired(ctx context.Context, session *stripe.CheckoutSession) error {
-	orderID, err := s.getMetadataOrderID(session)
-	if err != nil {
-		return err
-	}
-
-	if err := s.artrepo.UpdateArtworkStatuses(ctx, *orderID, artdomain.ArtworkStatusAvailable); err != nil {
-		return err
-	}
-
-	if err := s.payrepo.DeleteOrder(ctx, *orderID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *WebhookService) getMetadataOrderID(session *stripe.CheckoutSession) (*uuid.UUID, error) {
-	val, ok := session.Metadata["order_id"]
-	if !ok || val == "" {
-		return nil, ErrMetadataParse
-	}
-
-	id, err := uuid.Parse(val)
-	if err != nil {
-		return nil, ErrMetadataParse
-	}
-
-	return &id, nil
+	return &order, &payment
 }

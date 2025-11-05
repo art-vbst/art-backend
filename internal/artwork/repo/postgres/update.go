@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"errors"
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/platform/db/generated"
@@ -72,27 +71,33 @@ func (p *Postgres) SetImageAsMain(ctx context.Context, artID, id uuid.UUID) erro
 	})
 }
 
-func (p *Postgres) UpdateArtworksForPendingOrder(ctx context.Context, orderId uuid.UUID, ids []uuid.UUID) error {
+func (p *Postgres) UpdateArtworksAsPurchased(
+	ctx context.Context,
+	ids []uuid.UUID,
+	orderID uuid.UUID,
+	callback func(selectedIDs []uuid.UUID) error,
+) error {
 	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
-		rows, err := q.UpdateArtworksForOrder(ctx, generated.UpdateArtworksForOrderParams{
-			OrderID: pgtype.UUID{Bytes: orderId, Valid: true},
-			Column2: ids,
-		})
-		if len(rows) != len(ids) {
-			return errors.New("one or more artworks not found")
+		rows, err := q.SelectArtworksForUpdate(ctx, ids)
+		if err != nil {
+			return err
 		}
-		return err
-	})
-}
 
-func (p *Postgres) UpdateArtworkStatuses(ctx context.Context, orderID uuid.UUID, status domain.ArtworkStatus) error {
-	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
-		params := generated.UpdateArtworkStatusParams{
+		rowIDs := make([]uuid.UUID, len(rows))
+		for i, row := range rows {
+			rowIDs[i] = row.ID
+		}
+
+		if err := callback(rowIDs); err != nil {
+			return err
+		}
+
+		params := generated.UpdateArtworksAsPurchasedParams{
+			Column1: ids,
 			OrderID: pgtype.UUID{Bytes: orderID, Valid: true},
-			Status:  status,
 		}
 
-		if _, err := q.UpdateArtworkStatus(ctx, params); err != nil {
+		if _, err := q.UpdateArtworksAsPurchased(ctx, params); err != nil {
 			return err
 		}
 

@@ -99,19 +99,19 @@ SET title = $2,
 WHERE id = $1
 RETURNING *;
 
--- name: UpdateArtworksForOrder :many
-UPDATE artworks
-SET status = 'pending',
-    order_id = $1,
-    updated_at = current_timestamp
-WHERE id = ANY($2::uuid [])
-RETURNING *;
+-- name: SelectArtworksForUpdate :many
+SELECT *
+FROM artworks
+WHERE id = ANY($1::uuid [])
+    AND status = 'available' FOR
+UPDATE;
 
--- name: UpdateArtworkStatus :many
+-- name: UpdateArtworksAsPurchased :many
 UPDATE artworks
-SET status = $2,
-    updated_at = current_timestamp
-WHERE order_id = $1
+SET status = 'sold',
+    sold_at = current_timestamp,
+    order_id = $2
+WHERE id = ANY($1::uuid [])
 RETURNING *;
 
 -- name: DeleteArtwork :exec

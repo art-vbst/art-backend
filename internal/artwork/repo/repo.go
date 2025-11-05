@@ -21,8 +21,7 @@ type Repo interface {
 	DeleteArtwork(ctx context.Context, id uuid.UUID) error
 	DeleteImage(ctx context.Context, id uuid.UUID) error
 	GetArtworkCheckoutData(ctx context.Context, ids []uuid.UUID) ([]domain.Artwork, error)
-	UpdateArtworksForPendingOrder(ctx context.Context, orderID uuid.UUID, ids []uuid.UUID) error
-	UpdateArtworkStatuses(ctx context.Context, orderID uuid.UUID, status domain.ArtworkStatus) error
+	UpdateArtworksAsPurchased(ctx context.Context, ids []uuid.UUID, orderID uuid.UUID, callback func(selectedIDs []uuid.UUID) error) error
 }
 
 func New(db *store.Store) Repo {
