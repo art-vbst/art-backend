@@ -101,6 +101,25 @@ SELECT *
 FROM payment_requirements
 WHERE order_id = $1;
 
+-- name: GetOrderPublic :one
+SELECT id,
+    status,
+    created_at
+FROM orders
+WHERE id = $1
+    AND stripe_session_id = $2
+    AND created_at > NOW() - INTERVAL '1 hour';
+
+-- name: UpdateOrderStripeSessionID :exec
+UPDATE orders
+SET stripe_session_id = $2
+WHERE id = $1;
+
+-- name: UpdateOrderStatus :exec
+UPDATE orders
+SET status = $2
+WHERE id = $1;
+
 -- name: UpdateOrderAndShipping :one
 WITH updated_order AS (
     UPDATE orders
@@ -137,7 +156,3 @@ SELECT updated_order.id as order_id,
     updated_shipping_details.country
 FROM updated_order
     CROSS JOIN updated_shipping_details;
-
--- name: DeleteOrder :exec
-DELETE FROM orders
-WHERE id = $1;

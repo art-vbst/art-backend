@@ -23,3 +23,7 @@ func (s *OrdersService) List(ctx context.Context) ([]domain.Order, error) {
 func (s *OrdersService) Detail(ctx context.Context, id uuid.UUID) (*domain.Order, error) {
 	return s.repo.GetOrder(ctx, id)
 }
+
+func (s *OrdersService) GetPublic(ctx context.Context, id uuid.UUID, stripeSessionID *string) (*domain.OrderPublic, error) {
+	return s.repo.GetOrderPublic(ctx, id, stripeSessionID)
+}

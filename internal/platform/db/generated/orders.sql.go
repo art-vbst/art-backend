@@ -168,16 +168,6 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Creat
 	return i, err
 }
 
-const deleteOrder = `-- name: DeleteOrder :exec
-DELETE FROM orders
-WHERE id = $1
-`
-
-func (q *Queries) DeleteOrder(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteOrder, id)
-	return err
-}
-
 const getOrder = `-- name: GetOrder :one
 SELECT id, status, stripe_session_id, created_at
 FROM orders
@@ -213,6 +203,34 @@ func (q *Queries) GetOrderPaymentRequirement(ctx context.Context, orderID uuid.U
 		&i.TotalCents,
 		&i.Currency,
 	)
+	return i, err
+}
+
+const getOrderPublic = `-- name: GetOrderPublic :one
+SELECT id,
+    status,
+    created_at
+FROM orders
+WHERE id = $1
+    AND stripe_session_id = $2
+    AND created_at > NOW() - INTERVAL '1 hour'
+`
+
+type GetOrderPublicParams struct {
+	ID              uuid.UUID `db:"id" json:"id"`
+	StripeSessionID *string   `db:"stripe_session_id" json:"stripe_session_id"`
+}
+
+type GetOrderPublicRow struct {
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Status    OrderStatus      `db:"status" json:"status"`
+	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) GetOrderPublic(ctx context.Context, arg GetOrderPublicParams) (GetOrderPublicRow, error) {
+	row := q.db.QueryRow(ctx, getOrderPublic, arg.ID, arg.StripeSessionID)
+	var i GetOrderPublicRow
+	err := row.Scan(&i.ID, &i.Status, &i.CreatedAt)
 	return i, err
 }
 
@@ -437,4 +455,36 @@ func (q *Queries) UpdateOrderAndShipping(ctx context.Context, arg UpdateOrderAnd
 		&i.Country,
 	)
 	return i, err
+}
+
+const updateOrderStatus = `-- name: UpdateOrderStatus :exec
+UPDATE orders
+SET status = $2
+WHERE id = $1
+`
+
+type UpdateOrderStatusParams struct {
+	ID     uuid.UUID   `db:"id" json:"id"`
+	Status OrderStatus `db:"status" json:"status"`
+}
+
+func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error {
+	_, err := q.db.Exec(ctx, updateOrderStatus, arg.ID, arg.Status)
+	return err
+}
+
+const updateOrderStripeSessionID = `-- name: UpdateOrderStripeSessionID :exec
+UPDATE orders
+SET stripe_session_id = $2
+WHERE id = $1
+`
+
+type UpdateOrderStripeSessionIDParams struct {
+	ID              uuid.UUID `db:"id" json:"id"`
+	StripeSessionID *string   `db:"stripe_session_id" json:"stripe_session_id"`
+}
+
+func (q *Queries) UpdateOrderStripeSessionID(ctx context.Context, arg UpdateOrderStripeSessionIDParams) error {
+	_, err := q.db.Exec(ctx, updateOrderStripeSessionID, arg.ID, arg.StripeSessionID)
+	return err
 }

@@ -5,8 +5,27 @@ import (
 
 	"github.com/art-vbst/art-backend/internal/payments/domain"
 	"github.com/art-vbst/art-backend/internal/platform/db/generated"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+func (p *Postgres) UpdateOrderStripeSessionID(ctx context.Context, id uuid.UUID, stripeSessionID *string) error {
+	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		return q.UpdateOrderStripeSessionID(ctx, generated.UpdateOrderStripeSessionIDParams{
+			ID:              id,
+			StripeSessionID: stripeSessionID,
+		})
+	})
+}
+
+func (p *Postgres) UpdateOrderStatus(ctx context.Context, id uuid.UUID, status domain.OrderStatus) error {
+	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		return q.UpdateOrderStatus(ctx, generated.UpdateOrderStatusParams{
+			ID:     id,
+			Status: status,
+		})
+	})
+}
 
 func (p *Postgres) UpdateOrderWithPayment(ctx context.Context, order *domain.Order, payment *domain.Payment) error {
 	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {

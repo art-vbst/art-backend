@@ -13,8 +13,10 @@ type Repo interface {
 	CreateOrder(ctx context.Context, order *domain.Order) (*domain.Order, error)
 	ListOrders(ctx context.Context) ([]domain.Order, error)
 	GetOrder(ctx context.Context, id uuid.UUID) (*domain.Order, error)
+	GetOrderPublic(ctx context.Context, id uuid.UUID, stripeSessionID *string) (*domain.OrderPublic, error)
+	UpdateOrderStripeSessionID(ctx context.Context, id uuid.UUID, stripeSessionID *string) error
+	UpdateOrderStatus(ctx context.Context, id uuid.UUID, status domain.OrderStatus) error
 	UpdateOrderWithPayment(ctx context.Context, order *domain.Order, payment *domain.Payment) error
-	DeleteOrder(ctx context.Context, orderID uuid.UUID) error
 }
 
 func New(db *store.Store) Repo {

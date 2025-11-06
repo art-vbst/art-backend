@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	artdomain "github.com/art-vbst/art-backend/internal/artwork/domain"
 	artrepo "github.com/art-vbst/art-backend/internal/artwork/repo"
@@ -14,6 +15,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v83"
 	"github.com/stripe/stripe-go/v83/checkout/session"
+)
+
+const (
+	frontendEndpoint      = "/checkout/return"
+	checkoutSessionExpiry = time.Minute * 35
 )
 
 var (
@@ -63,6 +69,10 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, artworkIdSt
 	session, err := s.createCheckoutSession(artworks, order.ID)
 	if err != nil {
 		return nil, fmt.Errorf("create checkout session err: %w", err)
+	}
+
+	if err := s.payrepo.UpdateOrderStripeSessionID(ctx, order.ID, &session.ID); err != nil {
+		return nil, fmt.Errorf("update order stripe session id err: %w", err)
 	}
 
 	return &session.URL, nil
@@ -149,14 +159,23 @@ func (s *CheckoutService) createCheckoutSession(artworks []artdomain.Artwork, or
 		return nil, fmt.Errorf("create checkout session metadata err: %w", err)
 	}
 
+	successURL := fmt.Sprintf(
+		"%s%s?order_id=%s&session_id={CHECKOUT_SESSION_ID}",
+		s.config.FrontendUrl,
+		frontendEndpoint,
+		orderId.String(),
+	)
+
 	params := &stripe.CheckoutSessionParams{
 		Metadata:                  metadata,
 		LineItems:                 lineItems,
 		ShippingAddressCollection: shippingAddress,
 		ShippingOptions:           shippingOptions,
 		PaymentIntentData:         paymentIntentData,
+		ExpiresAt:                 stripe.Int64(time.Now().Add(checkoutSessionExpiry).Unix()),
+		ClientReferenceID:         stripe.String(orderId.String()),
 		Mode:                      stripe.String(string(stripe.CheckoutSessionModePayment)),
-		SuccessURL:                stripe.String(s.config.FrontendUrl + "/checkout/return?success=true&order_id=" + orderId.String()),
+		SuccessURL:                stripe.String(successURL),
 		CancelURL:                 stripe.String(s.config.FrontendUrl),
 	}
 

@@ -1,4 +1,4 @@
-.PHONY: help build run test clean exec sqlc migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql
+.PHONY: help build run test clean exec sqlc forward-stripe migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql
 
 ifneq (,$(wildcard .env))
     include .env
@@ -9,6 +9,7 @@ help:
 	@echo "Available commands:"
 	@echo "  make build          - Build the application"
 	@echo "  make run            - Run the application"
+	@echo "  make forward-stripe - Forward Stripe webhook to localhost"
 	@echo "  make test           - Run tests"
 	@echo "  make clean          - Clean build artifacts"
 	@echo "  make sqlc           - Generate Go code from SQL"
@@ -50,6 +51,10 @@ exec:
 sqlc:
 	@echo "Generating code with sqlc..."
 	sqlc generate
+
+forward-stripe:
+	@echo "Forwarding Stripe webhook to localhost..."
+	stripe listen --forward-to http://localhost:8080/stripe/webhook
 
 migrate-create:
 	@if [ -z "$(name)" ]; then \

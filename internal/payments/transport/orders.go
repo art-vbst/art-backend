@@ -25,6 +25,7 @@ func (h *OrdersHandler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", h.list)
 	r.Get("/{id}", h.detail)
+	r.Get("/public/{id}", h.getPublic)
 	return r
 }
 
@@ -62,11 +63,36 @@ func (h *OrdersHandler) detail(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusOK, order)
 }
 
+type GetOrderPublicParams struct {
+	StripeSessionID *string `json:"stripe_session_id"`
+}
+
+func (h *OrdersHandler) getPublic(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "bad order uuid")
+		return
+	}
+
+	var params GetOrderPublicParams
+	stripeSessionID := r.URL.Query().Get("stripe_session_id")
+	if stripeSessionID != "" {
+		params.StripeSessionID = &stripeSessionID
+	}
+
+	order, err := h.service.GetPublic(r.Context(), id, params.StripeSessionID)
+	if err != nil {
+		handleOrdersServiceError(w, err)
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, order)
+}
+
 func handleOrdersServiceError(w http.ResponseWriter, err error) {
 	switch {
 	default:
-		log.Printf("artwork service error: %v", err)
+		log.Printf("orders service error: %v", err)
 		utils.RespondServerError(w)
-
 	}
 }

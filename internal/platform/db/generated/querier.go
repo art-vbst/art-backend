@@ -20,12 +20,12 @@ type Querier interface {
 	DeleteArtwork(ctx context.Context, id uuid.UUID) error
 	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteImage(ctx context.Context, id uuid.UUID) error
-	DeleteOrder(ctx context.Context, id uuid.UUID) error
 	GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]GetArtworkWithImagesRow, error)
 	GetImage(ctx context.Context, id uuid.UUID) (Image, error)
 	GetOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	GetOrderPaymentRequirement(ctx context.Context, orderID uuid.UUID) (PaymentRequirement, error)
 	GetOrderPayments(ctx context.Context, orderID uuid.UUID) ([]Payment, error)
+	GetOrderPublic(ctx context.Context, arg GetOrderPublicParams) (GetOrderPublicRow, error)
 	GetOrderShippingDetail(ctx context.Context, orderID uuid.UUID) (ShippingDetail, error)
 	GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -45,6 +45,8 @@ type Querier interface {
 	UpdateArtworksAsPurchased(ctx context.Context, arg UpdateArtworksAsPurchasedParams) ([]Artwork, error)
 	UpdateImage(ctx context.Context, arg UpdateImageParams) (Image, error)
 	UpdateOrderAndShipping(ctx context.Context, arg UpdateOrderAndShippingParams) (UpdateOrderAndShippingRow, error)
+	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error
+	UpdateOrderStripeSessionID(ctx context.Context, arg UpdateOrderStripeSessionIDParams) error
 }
 
 var _ Querier = (*Queries)(nil)

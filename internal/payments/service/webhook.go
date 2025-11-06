@@ -59,7 +59,11 @@ func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *st
 	})
 
 	if orderTxErr != nil || artTxErr != nil {
-		s.cleanupSessionState(ctx, metadata.OrderID, session.PaymentIntent)
+		s.cleanupSessionState(ctx, CleanupSessionStateParams{
+			OrderID:       metadata.OrderID,
+			OrderStatus:   paydomain.OrderStatusFailed,
+			PaymentIntent: session.PaymentIntent,
+		})
 		return fmt.Errorf("webhook db updates err: %w || %w", orderTxErr, artTxErr)
 	}
 
@@ -80,22 +84,32 @@ func (s *WebhookService) HandleCheckoutExpired(ctx context.Context, session *str
 		return fmt.Errorf("get checkout session metadata err: %w", err)
 	}
 
-	if err := s.cleanupSessionState(ctx, metadata.OrderID, session.PaymentIntent); err != nil {
+	if err := s.cleanupSessionState(ctx, CleanupSessionStateParams{
+		OrderID:       metadata.OrderID,
+		OrderStatus:   paydomain.OrderStatusCanceled,
+		PaymentIntent: session.PaymentIntent,
+	}); err != nil {
 		return fmt.Errorf("cleanup session state err: %w", err)
 	}
 
 	return nil
 }
 
-func (s *WebhookService) cleanupSessionState(ctx context.Context, orderID uuid.UUID, paymentIntent *stripe.PaymentIntent) error {
-	if paymentIntent != nil {
-		if err := s.cancelPaymentIntent(paymentIntent.ID); err != nil {
+type CleanupSessionStateParams struct {
+	OrderID       uuid.UUID
+	OrderStatus   paydomain.OrderStatus
+	PaymentIntent *stripe.PaymentIntent
+}
+
+func (s *WebhookService) cleanupSessionState(ctx context.Context, params CleanupSessionStateParams) error {
+	if params.PaymentIntent != nil {
+		if err := s.cancelPaymentIntent(params.PaymentIntent.ID); err != nil {
 			return fmt.Errorf("cancel payment intent err: %w", err)
 		}
 	}
 
-	if err := s.payrepo.DeleteOrder(ctx, orderID); err != nil {
-		return fmt.Errorf("delete order err: %w", err)
+	if err := s.payrepo.UpdateOrderStatus(ctx, params.OrderID, params.OrderStatus); err != nil {
+		return fmt.Errorf("update order status err: %w", err)
 	}
 
 	return nil

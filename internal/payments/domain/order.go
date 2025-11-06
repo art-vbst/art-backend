@@ -23,6 +23,12 @@ const (
 	OrderStatusCanceled   OrderStatus = "canceled"
 )
 
+type OrderPublic struct {
+	ID        uuid.UUID   `json:"id"`
+	Status    OrderStatus `json:"status"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
 type Order struct {
 	ID                 uuid.UUID          `json:"id"`
 	StripeSessionID    *string            `json:"stripe_session_id,omitempty"`
