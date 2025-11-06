@@ -1,8 +1,15 @@
 package service
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/art-vbst/art-backend/internal/platform/mailer"
 	"github.com/google/uuid"
+)
+
+var (
+	ErrEmailSendFailed = errors.New("failed to send email")
 )
 
 type EmailService struct {
@@ -14,7 +21,7 @@ func NewEmailService(mailer mailer.Mailer, signature string) *EmailService {
 	return &EmailService{mailer: mailer, signature: signature}
 }
 
-func (s *EmailService) SendOrderRecieved(orderId uuid.UUID, to string) {
+func (s *EmailService) SendOrderRecieved(orderId uuid.UUID, to string) error {
 	subject := "Order Recieved!"
 
 	body := "Thank you for your order!\n\n" +
@@ -23,5 +30,9 @@ func (s *EmailService) SendOrderRecieved(orderId uuid.UUID, to string) {
 		s.signature + "\n\n" +
 		"Order ID: " + orderId.String()
 
-	s.mailer.SendEmail(to, subject, body)
+	if err := s.mailer.SendEmail(to, subject, body); err != nil {
+		return fmt.Errorf("send order recieved email err: %w", ErrEmailSendFailed)
+	}
+
+	return nil
 }

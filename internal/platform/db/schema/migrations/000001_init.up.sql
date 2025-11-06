@@ -33,8 +33,7 @@ CREATE TABLE artworks (
     status artwork_status NOT NULL,
     medium artwork_medium NOT NULL,
     category artwork_category NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
-    updated_at TIMESTAMP NOT NULL DEFAULT current_timestamp
+    created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
 CREATE TABLE images (
@@ -45,8 +44,7 @@ CREATE TABLE images (
     image_url TEXT NOT NULL,
     image_width INTEGER,
     image_height INTEGER,
-    created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
-    updated_at TIMESTAMP NOT NULL DEFAULT current_timestamp
+    created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
 CREATE INDEX idx_artworks_status ON artworks (status);

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	artrepo "github.com/art-vbst/art-backend/internal/artwork/repo"
@@ -36,31 +37,38 @@ func NewWebhookService(payrepo payrepo.Repo, artrepo artrepo.Repo, emails *Email
 func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *stripe.CheckoutSession) error {
 	metadata, err := getCheckoutSessionMetadata(session)
 	if err != nil {
-		return err
+		return fmt.Errorf("get checkout session metadata err: %w", err)
 	}
 
 	order, payment := s.constructDomainData(metadata.OrderID, session)
+	orderTxErr := s.payrepo.UpdateOrderWithPayment(ctx, order, payment)
 
-	err = s.artrepo.UpdateArtworksAsPurchased(ctx, metadata.ArtworkIDs, metadata.OrderID, func(selectedIDs []uuid.UUID) error {
-		if len(metadata.ArtworkIDs) != len(selectedIDs) {
-			return ErrArtworksNotAvailable
+	artTxErr := s.artrepo.UpdateArtworksAsPurchased(ctx, metadata.ArtworkIDs, metadata.OrderID, func(selectedIDs []uuid.UUID) error {
+		selectedArtworks := map[uuid.UUID]bool{}
+		for _, id := range selectedIDs {
+			selectedArtworks[id] = true
 		}
 
-		if err := s.capturePaymentIntent(session.PaymentIntent.ID); err != nil {
-			return err
+		for _, id := range metadata.ArtworkIDs {
+			if _, ok := selectedArtworks[id]; !ok {
+				return ErrArtworksNotAvailable
+			}
 		}
 
-		if err := s.payrepo.UpdateOrderWithPayment(ctx, order, payment); err != nil {
-			return err
-		}
-
-		s.emails.SendOrderRecieved(order.ID, order.ShippingDetail.Email)
 		return nil
 	})
 
-	if err != nil {
+	if orderTxErr != nil || artTxErr != nil {
 		s.cleanupSessionState(ctx, metadata.OrderID, session.PaymentIntent)
-		return err
+		return fmt.Errorf("webhook db updates err: %w || %w", orderTxErr, artTxErr)
+	}
+
+	if err := s.capturePaymentIntent(session.PaymentIntent.ID); err != nil {
+		return fmt.Errorf("capture payment err: %w", err)
+	}
+
+	if err := s.emails.SendOrderRecieved(order.ID, order.ShippingDetail.Email); err != nil {
+		return fmt.Errorf("order email err: %w", err)
 	}
 
 	return nil
@@ -69,11 +77,11 @@ func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *st
 func (s *WebhookService) HandleCheckoutExpired(ctx context.Context, session *stripe.CheckoutSession) error {
 	metadata, err := getCheckoutSessionMetadata(session)
 	if err != nil {
-		return err
+		return fmt.Errorf("get checkout session metadata err: %w", err)
 	}
 
 	if err := s.cleanupSessionState(ctx, metadata.OrderID, session.PaymentIntent); err != nil {
-		return err
+		return fmt.Errorf("cleanup session state err: %w", err)
 	}
 
 	return nil
@@ -82,12 +90,12 @@ func (s *WebhookService) HandleCheckoutExpired(ctx context.Context, session *str
 func (s *WebhookService) cleanupSessionState(ctx context.Context, orderID uuid.UUID, paymentIntent *stripe.PaymentIntent) error {
 	if paymentIntent != nil {
 		if err := s.cancelPaymentIntent(paymentIntent.ID); err != nil {
-			return err
+			return fmt.Errorf("cancel payment intent err: %w", err)
 		}
 	}
 
 	if err := s.payrepo.DeleteOrder(ctx, orderID); err != nil {
-		return err
+		return fmt.Errorf("delete order err: %w", err)
 	}
 
 	return nil
@@ -96,12 +104,12 @@ func (s *WebhookService) cleanupSessionState(ctx context.Context, orderID uuid.U
 func (s *WebhookService) capturePaymentIntent(paymentIntentID string) error {
 	pi, err := s.getPaymentIntentForCapture(paymentIntentID, stripe.PaymentIntentStatusSucceeded)
 	if err != nil {
-		return err
+		return fmt.Errorf("get payment intent for capture err: %w", err)
 	}
 
 	pi, err = paymentintent.Capture(pi.ID, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("capture payment intent err: %w", err)
 	}
 	if pi.Status != stripe.PaymentIntentStatusSucceeded {
 		return ErrIntentProcessingFailure
@@ -113,12 +121,12 @@ func (s *WebhookService) capturePaymentIntent(paymentIntentID string) error {
 func (s *WebhookService) cancelPaymentIntent(paymentIntentID string) error {
 	pi, err := s.getPaymentIntentForCapture(paymentIntentID, stripe.PaymentIntentStatusCanceled)
 	if err != nil {
-		return err
+		return fmt.Errorf("get payment intent for capture err: %w", err)
 	}
 
 	pi, err = paymentintent.Cancel(pi.ID, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("cancel payment intent err: %w", err)
 	}
 	if pi.Status != stripe.PaymentIntentStatusCanceled {
 		return ErrIntentProcessingFailure
@@ -132,7 +140,7 @@ func (s *WebhookService) getPaymentIntentForCapture(paymentIntentID string, targ
 
 	intent, err := paymentintent.Get(paymentIntentID, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get intent err: %w", err)
 	}
 	if intent.Status == targetStatus {
 		return nil, ErrIntentAlreadyProcessed

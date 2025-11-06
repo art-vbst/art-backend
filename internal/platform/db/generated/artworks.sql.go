@@ -37,7 +37,7 @@ VALUES (
         $9,
         $10
     )
-RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
+RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, order_id
 `
 
 type CreateArtworkParams struct {
@@ -82,7 +82,6 @@ func (q *Queries) CreateArtwork(ctx context.Context, arg CreateArtworkParams) (A
 		&i.Medium,
 		&i.Category,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 		&i.OrderID,
 	)
 	return i, err
@@ -99,7 +98,7 @@ func (q *Queries) DeleteArtwork(ctx context.Context, id uuid.UUID) error {
 }
 
 const getArtworkWithImages = `-- name: GetArtworkWithImages :many
-SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at, a.order_id,
+SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.order_id,
     i.id as image_id,
     i.is_main_image,
     i.object_name,
@@ -128,7 +127,6 @@ type GetArtworkWithImagesRow struct {
 	Medium         ArtworkMedium    `db:"medium" json:"medium"`
 	Category       ArtworkCategory  `db:"category" json:"category"`
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
 	ImageID        pgtype.UUID      `db:"image_id" json:"image_id"`
 	IsMainImage    *bool            `db:"is_main_image" json:"is_main_image"`
@@ -163,7 +161,6 @@ func (q *Queries) GetArtworkWithImages(ctx context.Context, id uuid.UUID) ([]Get
 			&i.Medium,
 			&i.Category,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.OrderID,
 			&i.ImageID,
 			&i.IsMainImage,
@@ -240,7 +237,7 @@ func (q *Queries) ListArtworkStripeData(ctx context.Context, dollar_1 []uuid.UUI
 }
 
 const listArtworks = `-- name: ListArtworks :many
-SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.updated_at, a.order_id,
+SELECT a.id, a.title, a.painting_number, a.painting_year, a.width_inches, a.height_inches, a.price_cents, a.paper, a.sort_order, a.sold_at, a.status, a.medium, a.category, a.created_at, a.order_id,
     i.image_id,
     COALESCE(i.object_name, '') as object_name,
     COALESCE(i.image_url, '') as image_url,
@@ -280,7 +277,6 @@ type ListArtworksRow struct {
 	Medium         ArtworkMedium    `db:"medium" json:"medium"`
 	Category       ArtworkCategory  `db:"category" json:"category"`
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
 	ImageID        uuid.UUID        `db:"image_id" json:"image_id"`
 	ObjectName     string           `db:"object_name" json:"object_name"`
@@ -314,7 +310,6 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
 			&i.Medium,
 			&i.Category,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.OrderID,
 			&i.ImageID,
 			&i.ObjectName,
@@ -334,7 +329,7 @@ func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
 }
 
 const selectArtworksForUpdate = `-- name: SelectArtworksForUpdate :many
-SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
+SELECT id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, order_id
 FROM artworks
 WHERE id = ANY($1::uuid [])
     AND status = 'available' FOR
@@ -365,7 +360,6 @@ func (q *Queries) SelectArtworksForUpdate(ctx context.Context, dollar_1 []uuid.U
 			&i.Medium,
 			&i.Category,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.OrderID,
 		); err != nil {
 			return nil, err
@@ -392,7 +386,7 @@ SET title = $2,
     medium = $11,
     category = $12
 WHERE id = $1
-RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
+RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, order_id
 `
 
 type UpdateArtworkParams struct {
@@ -441,60 +435,9 @@ func (q *Queries) UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (A
 		&i.Medium,
 		&i.Category,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 		&i.OrderID,
 	)
 	return i, err
-}
-
-const updateArtworkStatus = `-- name: UpdateArtworkStatus :many
-UPDATE artworks
-SET status = $2,
-    updated_at = current_timestamp
-WHERE order_id = $1
-RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
-`
-
-type UpdateArtworkStatusParams struct {
-	OrderID pgtype.UUID   `db:"order_id" json:"order_id"`
-	Status  ArtworkStatus `db:"status" json:"status"`
-}
-
-func (q *Queries) UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) ([]Artwork, error) {
-	rows, err := q.db.Query(ctx, updateArtworkStatus, arg.OrderID, arg.Status)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artwork
-	for rows.Next() {
-		var i Artwork
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.PaintingNumber,
-			&i.PaintingYear,
-			&i.WidthInches,
-			&i.HeightInches,
-			&i.PriceCents,
-			&i.Paper,
-			&i.SortOrder,
-			&i.SoldAt,
-			&i.Status,
-			&i.Medium,
-			&i.Category,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.OrderID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const updateArtworksAsPurchased = `-- name: UpdateArtworksAsPurchased :many
@@ -503,7 +446,7 @@ SET status = 'sold',
     sold_at = current_timestamp,
     order_id = $2
 WHERE id = ANY($1::uuid [])
-RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, updated_at, order_id
+RETURNING id, title, painting_number, painting_year, width_inches, height_inches, price_cents, paper, sort_order, sold_at, status, medium, category, created_at, order_id
 `
 
 type UpdateArtworksAsPurchasedParams struct {
@@ -535,7 +478,6 @@ func (q *Queries) UpdateArtworksAsPurchased(ctx context.Context, arg UpdateArtwo
 			&i.Medium,
 			&i.Category,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.OrderID,
 		); err != nil {
 			return nil, err

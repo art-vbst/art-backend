@@ -22,7 +22,7 @@ INSERT INTO images (
         image_height
     )
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at, updated_at
+RETURNING id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at
 `
 
 type CreateImageParams struct {
@@ -53,7 +53,6 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (Image
 		&i.ImageWidth,
 		&i.ImageHeight,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -69,7 +68,7 @@ func (q *Queries) DeleteImage(ctx context.Context, id uuid.UUID) error {
 }
 
 const getImage = `-- name: GetImage :one
-SELECT id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at, updated_at
+SELECT id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at
 FROM images
 WHERE id = $1
 `
@@ -86,7 +85,6 @@ func (q *Queries) GetImage(ctx context.Context, id uuid.UUID) (Image, error) {
 		&i.ImageWidth,
 		&i.ImageHeight,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -114,7 +112,7 @@ const updateImage = `-- name: UpdateImage :one
 UPDATE images
 SET is_main_image = $2
 WHERE id = $1
-RETURNING id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at, updated_at
+RETURNING id, artwork_id, is_main_image, object_name, image_url, image_width, image_height, created_at
 `
 
 type UpdateImageParams struct {
@@ -134,7 +132,6 @@ func (q *Queries) UpdateImage(ctx context.Context, arg UpdateImageParams) (Image
 		&i.ImageWidth,
 		&i.ImageHeight,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }

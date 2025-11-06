@@ -31,9 +31,14 @@ func (m *Mailgun) SendEmail(to, subject, body string) error {
 	data.Set("subject", subject)
 	data.Set("text", body)
 
+	if config.IsDebug() {
+		m.logEmail(to, subject, body)
+		return nil
+	}
+
 	req, err := http.NewRequest("POST", baseURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
-		return err
+		return fmt.Errorf("email new request err: %w", err)
 	}
 
 	req.SetBasicAuth("api", m.config.MailgunApiKey)
@@ -41,11 +46,9 @@ func (m *Mailgun) SendEmail(to, subject, body string) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("email api request err: %w", err)
 	}
 	defer resp.Body.Close()
-
-	log.Printf("Mailgun response status: %d", resp.StatusCode)
 
 	return nil
 }
@@ -61,4 +64,12 @@ func (m *Mailgun) getSafeTo(intended string) string {
 	}
 
 	return testEmail
+}
+
+func (m *Mailgun) logEmail(to, subject, body string) {
+	log.Println("--------------------------------")
+	log.Println("To: ", to)
+	log.Println("Subject: ", subject)
+	log.Println("Body: ", body)
+	log.Println("--------------------------------")
 }

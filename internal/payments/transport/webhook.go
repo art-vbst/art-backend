@@ -3,6 +3,7 @@ package transport
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -62,7 +63,7 @@ func (h *WebhookHandler) post(w http.ResponseWriter, r *http.Request) {
 
 	session, err := parseCheckoutSession(event)
 	if err != nil {
-		utils.RespondError(w, http.StatusInternalServerError, "error parsing webhook JSON to checkout session")
+		utils.RespondError(w, http.StatusBadRequest, "error parsing webhook JSON to checkout session")
 		return
 	}
 
@@ -85,7 +86,7 @@ func (h *WebhookHandler) post(w http.ResponseWriter, r *http.Request) {
 func parseCheckoutSession(event stripe.Event) (*stripe.CheckoutSession, error) {
 	var session stripe.CheckoutSession
 	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal checkout session err: %w", err)
 	}
 
 	return &session, nil
@@ -93,12 +94,15 @@ func parseCheckoutSession(event stripe.Event) (*stripe.CheckoutSession, error) {
 
 func handleServiceError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, service.ErrIntentAlreadyProcessed):
+		w.WriteHeader(http.StatusOK)
+	case errors.Is(err, service.ErrEmailSendFailed):
+		log.Printf("email send failed: %v", err)
+		w.WriteHeader(http.StatusOK)
 	case errors.Is(err, service.ErrOrderNotFound):
 		utils.RespondError(w, http.StatusNotFound, "Order not found")
 	case errors.Is(err, service.ErrArtworksNotAvailable):
 		utils.RespondError(w, http.StatusNotFound, "One or more artworks is not available for purchase")
-	case errors.Is(err, service.ErrIntentAlreadyProcessed):
-		utils.RespondError(w, http.StatusConflict, "Payment intent already processed")
 	case errors.Is(err, service.ErrMetadataParse):
 		utils.RespondError(w, http.StatusInternalServerError, "Metadata parse error")
 	case errors.Is(err, service.ErrBadIntentStatus):

@@ -251,7 +251,6 @@ type Artwork struct {
 	Medium         ArtworkMedium    `db:"medium" json:"medium"`
 	Category       ArtworkCategory  `db:"category" json:"category"`
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
 }
 
@@ -264,7 +263,6 @@ type Image struct {
 	ImageWidth  *int32           `db:"image_width" json:"image_width"`
 	ImageHeight *int32           `db:"image_height" json:"image_height"`
 	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 }
 
 type Order struct {

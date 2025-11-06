@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 
 	artdomain "github.com/art-vbst/art-backend/internal/artwork/domain"
 	artrepo "github.com/art-vbst/art-backend/internal/artwork/repo"
@@ -43,27 +42,27 @@ const MaxCheckoutItems = 50
 
 func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, artworkIdStrings []string) (*string, error) {
 	if err := s.validateRequest(artworkIdStrings); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validate request err: %w", err)
 	}
 
 	artworkIds, err := s.parseUUIDs(artworkIdStrings)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse uuids err: %w", err)
 	}
 
 	artworks, err := s.fetchArtworkData(ctx, artworkIds)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetch artwork data err: %w", err)
 	}
 
 	order, err := s.createOrder(ctx, artworks)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create order err: %w", err)
 	}
 
 	session, err := s.createCheckoutSession(artworks, order.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create checkout session err: %w", err)
 	}
 
 	return &session.URL, nil
@@ -117,7 +116,7 @@ func (s *CheckoutService) createOrder(ctx context.Context, artworks []artdomain.
 
 	order, err := s.payrepo.CreateOrder(ctx, &orderParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create order err: %w", err)
 	}
 
 	return order, nil
@@ -147,7 +146,7 @@ func (s *CheckoutService) createCheckoutSession(artworks []artdomain.Artwork, or
 
 	metadata, err := buildCheckoutSessionMetadata(artworks, orderId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create checkout session metadata err: %w", err)
 	}
 
 	params := &stripe.CheckoutSessionParams{
@@ -164,8 +163,7 @@ func (s *CheckoutService) createCheckoutSession(artworks []artdomain.Artwork, or
 	stripe.Key = s.config.StripeSecret
 	session, err := session.New(params)
 	if err != nil {
-		log.Printf("stripe session creation failed: %v", err)
-		return nil, fmt.Errorf("failed to create stripe session: %w", err)
+		return nil, fmt.Errorf("create stripe session err: %w", err)
 	}
 
 	return session, nil
@@ -224,7 +222,7 @@ func (s *CheckoutService) buildShippingOptionParams() []*stripe.CheckoutSessionS
 
 func (s *CheckoutService) buildPaymentIntentDataParams() *stripe.CheckoutSessionPaymentIntentDataParams {
 	return &stripe.CheckoutSessionPaymentIntentDataParams{
-		CaptureMethod: stripe.String(stripe.CheckoutSessionPaymentMethodOptionsAffirmCaptureMethodManual),
+		CaptureMethod: stripe.String(stripe.PaymentIntentCaptureMethodManual),
 	}
 }
 
@@ -241,7 +239,7 @@ func buildCheckoutSessionMetadata(artworks []artdomain.Artwork, orderId uuid.UUI
 
 	artworkIDsStr, err := json.Marshal(artworkIDs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("metadata art ids marshal err: %w", err)
 	}
 
 	return map[string]string{"order_id": orderId.String(), "artwork_ids": string(artworkIDsStr)}, nil
@@ -250,22 +248,22 @@ func buildCheckoutSessionMetadata(artworks []artdomain.Artwork, orderId uuid.UUI
 func getCheckoutSessionMetadata(session *stripe.CheckoutSession) (*CheckoutSessionMetadata, error) {
 	orderIDStr, ok := session.Metadata["order_id"]
 	if !ok || orderIDStr == "" {
-		return nil, ErrMetadataParse
+		return nil, fmt.Errorf("no metadata order id: %w", ErrMetadataParse)
 	}
 
 	orderID, err := uuid.Parse(orderIDStr)
 	if err != nil {
-		return nil, ErrMetadataParse
+		return nil, fmt.Errorf("metadata order id parse err: %w", ErrMetadataParse)
 	}
 
 	artworkIDsStr, ok := session.Metadata["artwork_ids"]
 	if !ok || artworkIDsStr == "" {
-		return nil, ErrMetadataParse
+		return nil, fmt.Errorf("no metadata art ids: %w", ErrMetadataParse)
 	}
 
 	var artworkIDs []uuid.UUID
 	if err := json.Unmarshal([]byte(artworkIDsStr), &artworkIDs); err != nil {
-		return nil, ErrMetadataParse
+		return nil, fmt.Errorf("metadata art ids unmarshal err: %w", ErrMetadataParse)
 	}
 
 	metadata := &CheckoutSessionMetadata{

@@ -42,7 +42,6 @@ type Querier interface {
 	SelectArtworksForUpdate(ctx context.Context, dollar_1 []uuid.UUID) ([]Artwork, error)
 	SetMainImage(ctx context.Context, arg SetMainImageParams) error
 	UpdateArtwork(ctx context.Context, arg UpdateArtworkParams) (Artwork, error)
-	UpdateArtworkStatus(ctx context.Context, arg UpdateArtworkStatusParams) ([]Artwork, error)
 	UpdateArtworksAsPurchased(ctx context.Context, arg UpdateArtworksAsPurchasedParams) ([]Artwork, error)
 	UpdateImage(ctx context.Context, arg UpdateImageParams) (Image, error)
 	UpdateOrderAndShipping(ctx context.Context, arg UpdateOrderAndShippingParams) (UpdateOrderAndShippingRow, error)
