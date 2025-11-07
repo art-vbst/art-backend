@@ -26,10 +26,12 @@ type Config struct {
 	EmailSignature      string
 }
 
+func IsDebug() bool {
+	return os.Getenv("DEBUG") == "true"
+}
+
 func Load() *Config {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-	}
+	loadRoutedEnvFile()
 
 	config := Config{
 		Port:                os.Getenv("PORT"),
@@ -57,8 +59,28 @@ func Load() *Config {
 	return &config
 }
 
-func IsDebug() bool {
-	return os.Getenv("DEBUG") == "true"
+func loadRoutedEnvFile() {
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "dev"
+	}
+
+	var envFile string
+	switch env {
+	case "dev":
+		envFile = ".env"
+	case "stage":
+		envFile = ".env.stage"
+	case "prod":
+		envFile = ".env.prod"
+	default:
+		log.Printf("Warning: Unknown ENV value '%s', defaulting to .env", env)
+		envFile = ".env"
+	}
+
+	if err := godotenv.Load(envFile); err != nil {
+		log.Printf("No %s file found", envFile)
+	}
 }
 
 func ensureRequiredVars(config *Config) {

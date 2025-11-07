@@ -1,9 +1,27 @@
 .PHONY: help build run test clean exec sqlc forward-stripe migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql psql
 
-ifneq (,$(wildcard .env))
-    include .env
+ENV ?= dev
+
+ifdef env
+    ENV := $(env)
+endif
+
+ifeq ($(ENV),dev)
+    ENV_FILE := .env
+else ifeq ($(ENV),stage)
+    ENV_FILE := .env.stage
+else ifeq ($(ENV),prod)
+    ENV_FILE := .env.prod
+else
+    $(error Invalid environment: $(ENV). Must be one of: dev, stage, prod)
+endif
+
+ifneq (,$(wildcard $(ENV_FILE)))
+    include $(ENV_FILE)
     export
 endif
+
+export ENV
 
 help:
 	@echo "Available commands:"
@@ -13,7 +31,7 @@ help:
 	@echo "  make test           - Run tests"
 	@echo "  make clean          - Clean build artifacts"
 	@echo "  make sqlc           - Generate Go code from SQL"
-	@echo "  make exec           - Execute a tool"
+	@echo "  make exec <action>  - Execute a tool (e.g., make exec createuser)"
 	@echo "  make migrate-create - Create a new migration (usage: make migrate-create name=create_users_table)"
 	@echo "  make migrate-up     - Run all pending migrations"
 	@echo "  make migrate-down   - Rollback the last migration"
@@ -24,6 +42,15 @@ help:
 	@echo "  make psql           - Connect to PostgreSQL database"
 	@echo "  make lint-sql       - Lint SQL files"
 	@echo "  make fix-sql        - Fix SQL files"
+	@echo ""
+	@echo "Environment:"
+	@echo "  All commands accept an 'env' parameter (default: dev)"
+	@echo "  Usage: make <command> env=<dev|stage|prod>"
+	@echo "  Examples:"
+	@echo "    make run env=dev     - Run with .env file (default)"
+	@echo "    make run env=stage   - Run with .env.stage file"
+	@echo "    make run env=prod    - Run with .env.prod file"
+	@echo "    make psql env=stage  - Connect to stage database"
 
 build:
 	@echo "Building application..."
@@ -43,11 +70,16 @@ clean:
 
 exec:
 	@echo "Executing tool..."
-	@if [ -z "$(action)" ]; then \
-		echo "Error: action is required. Usage: make exec action=createuser"; \
+	@if [ -z "$(filter-out exec,$(MAKECMDGOALS))" ]; then \
+		echo "Error: action is required. Usage: make exec createuser"; \
 		exit 1; \
 	fi
-	go run cmd/tools/main.go $(action)
+	go run cmd/tools/main.go $(filter-out exec,$(MAKECMDGOALS))
+
+ifneq (,$(filter exec,$(MAKECMDGOALS)))
+%:
+	@:
+endif
 
 sqlc:
 	@echo "Generating code with sqlc..."
