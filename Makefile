@@ -1,4 +1,4 @@
-.PHONY: help build run test clean exec sqlc forward-stripe migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql
+.PHONY: help build run test clean exec sqlc forward-stripe migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql psql
 
 ifneq (,$(wildcard .env))
     include .env
@@ -21,6 +21,7 @@ help:
 	@echo "  make migrate-status - Show migration status"
 	@echo "  make migrate-force  - Force set migration version (usage: make migrate-force version=1)"
 	@echo "  make seed           - Seed the database"
+	@echo "  make psql           - Connect to PostgreSQL database"
 	@echo "  make lint-sql       - Lint SQL files"
 	@echo "  make fix-sql        - Fix SQL files"
 
@@ -120,6 +121,13 @@ seed:
 		exit 1; \
 	fi
 	psql "$(DB_URL)" < internal/platform/db/seed/artworks.sql
+
+psql:
+	@if [ -z "$(DB_URL)" ]; then \
+		echo "Error: DB_URL environment variable is not set"; \
+		exit 1; \
+	fi
+	psql "$(DB_URL)"
 
 lint-sql:
 	sqlfluff lint internal/platform/db/schema/migrations/
