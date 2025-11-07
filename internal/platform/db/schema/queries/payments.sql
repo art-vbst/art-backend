@@ -12,7 +12,8 @@ RETURNING *;
 
 -- name: ListPayments :many
 SELECT *
-FROM payments;
+FROM payments
+WHERE order_id = ANY($1::uuid []);
 
 -- name: GetOrderPayments :many
 SELECT *

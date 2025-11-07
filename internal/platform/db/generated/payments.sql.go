@@ -95,10 +95,11 @@ func (q *Queries) GetOrderPayments(ctx context.Context, orderID uuid.UUID) ([]Pa
 const listPayments = `-- name: ListPayments :many
 SELECT id, order_id, stripe_payment_intent_id, status, total_cents, currency, created_at, paid_at
 FROM payments
+WHERE order_id = ANY($1::uuid [])
 `
 
-func (q *Queries) ListPayments(ctx context.Context) ([]Payment, error) {
-	rows, err := q.db.Query(ctx, listPayments)
+func (q *Queries) ListPayments(ctx context.Context, dollar_1 []uuid.UUID) ([]Payment, error) {
+	rows, err := q.db.Query(ctx, listPayments, dollar_1)
 	if err != nil {
 		return nil, err
 	}

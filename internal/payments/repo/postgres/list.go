@@ -4,25 +4,36 @@ import (
 	"context"
 
 	"github.com/art-vbst/art-backend/internal/payments/domain"
+	"github.com/google/uuid"
 )
 
-func (p *Postgres) ListOrders(ctx context.Context) ([]domain.Order, error) {
-	orderRows, err := p.db.Queries().ListOrders(ctx)
+func (p *Postgres) ListOrders(ctx context.Context, statuses []domain.OrderStatus) ([]domain.Order, error) {
+	statusStrings := make([]string, len(statuses))
+	for i, status := range statuses {
+		statusStrings[i] = string(status)
+	}
+
+	orderRows, err := p.db.Queries().ListOrders(ctx, statusStrings)
 	if err != nil {
 		return nil, err
 	}
 
-	shippingRows, err := p.db.Queries().ListShippingDetails(ctx)
+	orderIDs := make([]uuid.UUID, len(orderRows))
+	for i, row := range orderRows {
+		orderIDs[i] = row.ID
+	}
+
+	shippingRows, err := p.db.Queries().ListShippingDetails(ctx, orderIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	paymentReqRows, err := p.db.Queries().ListPaymentRequirements(ctx)
+	paymentReqRows, err := p.db.Queries().ListPaymentRequirements(ctx, orderIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	paymentsRows, err := p.db.Queries().ListPayments(ctx)
+	paymentsRows, err := p.db.Queries().ListPayments(ctx, orderIDs)
 	if err != nil {
 		return nil, err
 	}

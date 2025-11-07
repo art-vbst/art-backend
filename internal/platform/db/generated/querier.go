@@ -32,10 +32,10 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	ListArtworkStripeData(ctx context.Context, dollar_1 []uuid.UUID) ([]ListArtworkStripeDataRow, error)
 	ListArtworks(ctx context.Context, dollar_1 []string) ([]ListArtworksRow, error)
-	ListOrders(ctx context.Context) ([]Order, error)
-	ListPaymentRequirements(ctx context.Context) ([]PaymentRequirement, error)
-	ListPayments(ctx context.Context) ([]Payment, error)
-	ListShippingDetails(ctx context.Context) ([]ShippingDetail, error)
+	ListOrders(ctx context.Context, dollar_1 []string) ([]Order, error)
+	ListPaymentRequirements(ctx context.Context, dollar_1 []uuid.UUID) ([]PaymentRequirement, error)
+	ListPayments(ctx context.Context, dollar_1 []uuid.UUID) ([]Payment, error)
+	ListShippingDetails(ctx context.Context, dollar_1 []uuid.UUID) ([]ShippingDetail, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error
 	RevokeRefreshToken(ctx context.Context, id uuid.UUID) error
 	RevokeSessionRefreshTokens(ctx context.Context, sessionID uuid.UUID) error

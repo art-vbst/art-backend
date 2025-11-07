@@ -11,7 +11,7 @@ import (
 
 type Repo interface {
 	CreateOrder(ctx context.Context, order *domain.Order) (*domain.Order, error)
-	ListOrders(ctx context.Context) ([]domain.Order, error)
+	ListOrders(ctx context.Context, statuses []domain.OrderStatus) ([]domain.Order, error)
 	GetOrder(ctx context.Context, id uuid.UUID) (*domain.Order, error)
 	GetOrderPublic(ctx context.Context, id uuid.UUID, stripeSessionID *string) (*domain.OrderPublic, error)
 	UpdateOrderStripeSessionID(ctx context.Context, id uuid.UUID, stripeSessionID *string) error

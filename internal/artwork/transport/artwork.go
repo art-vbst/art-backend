@@ -34,10 +34,9 @@ func (h *ArtworkHandler) Routes() chi.Router {
 }
 
 func (h *ArtworkHandler) list(w http.ResponseWriter, r *http.Request) {
-	statusParams := r.URL.Query()["status"]
-	statuses, err := parseArtworkStatuses(statusParams)
+	statuses, err := parseArtworkStatuses(r.URL.Query()["status"])
 	if err != nil {
-		utils.RespondError(w, http.StatusBadRequest, "invalid param provided")
+		utils.RespondError(w, http.StatusBadRequest, "invalid artwork status provided")
 		return
 	}
 

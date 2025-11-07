@@ -34,7 +34,13 @@ func (h *OrdersHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := h.service.List(r.Context())
+	statuses, err := parseOrderStatuses(r.URL.Query()["status"])
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "invalid order status provided")
+		return
+	}
+
+	orders, err := h.service.List(r.Context(), statuses)
 	if err != nil {
 		handleOrdersServiceError(w, err)
 		return

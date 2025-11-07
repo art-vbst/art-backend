@@ -76,15 +76,21 @@ FROM new_order,
 
 -- name: ListOrders :many
 SELECT *
-FROM orders;
+FROM orders
+WHERE $1::text [] IS NULL
+    OR cardinality($1) = 0
+    OR status = ANY($1::order_status [])
+ORDER BY created_at DESC;
 
 -- name: ListShippingDetails :many
 SELECT *
-FROM shipping_details;
+FROM shipping_details
+WHERE order_id = ANY($1::uuid []);
 
 -- name: ListPaymentRequirements :many
 SELECT *
-FROM payment_requirements;
+FROM payment_requirements
+WHERE order_id = ANY($1::uuid []);
 
 -- name: GetOrder :one
 SELECT *

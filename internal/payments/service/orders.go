@@ -16,8 +16,8 @@ func NewOrderService(repo repo.Repo) *OrdersService {
 	return &OrdersService{repo: repo}
 }
 
-func (s *OrdersService) List(ctx context.Context) ([]domain.Order, error) {
-	return s.repo.ListOrders(ctx)
+func (s *OrdersService) List(ctx context.Context, statuses []domain.OrderStatus) ([]domain.Order, error) {
+	return s.repo.ListOrders(ctx, statuses)
 }
 
 func (s *OrdersService) Detail(ctx context.Context, id uuid.UUID) (*domain.Order, error) {

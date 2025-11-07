@@ -261,10 +261,14 @@ func (q *Queries) GetOrderShippingDetail(ctx context.Context, orderID uuid.UUID)
 const listOrders = `-- name: ListOrders :many
 SELECT id, status, stripe_session_id, created_at
 FROM orders
+WHERE $1::text [] IS NULL
+    OR cardinality($1) = 0
+    OR status = ANY($1::order_status [])
+ORDER BY created_at DESC
 `
 
-func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
-	rows, err := q.db.Query(ctx, listOrders)
+func (q *Queries) ListOrders(ctx context.Context, dollar_1 []string) ([]Order, error) {
+	rows, err := q.db.Query(ctx, listOrders, dollar_1)
 	if err != nil {
 		return nil, err
 	}
@@ -291,10 +295,11 @@ func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
 const listPaymentRequirements = `-- name: ListPaymentRequirements :many
 SELECT id, order_id, subtotal_cents, shipping_cents, total_cents, currency
 FROM payment_requirements
+WHERE order_id = ANY($1::uuid [])
 `
 
-func (q *Queries) ListPaymentRequirements(ctx context.Context) ([]PaymentRequirement, error) {
-	rows, err := q.db.Query(ctx, listPaymentRequirements)
+func (q *Queries) ListPaymentRequirements(ctx context.Context, dollar_1 []uuid.UUID) ([]PaymentRequirement, error) {
+	rows, err := q.db.Query(ctx, listPaymentRequirements, dollar_1)
 	if err != nil {
 		return nil, err
 	}
@@ -323,10 +328,11 @@ func (q *Queries) ListPaymentRequirements(ctx context.Context) ([]PaymentRequire
 const listShippingDetails = `-- name: ListShippingDetails :many
 SELECT id, order_id, email, name, line1, line2, city, state, postal, country
 FROM shipping_details
+WHERE order_id = ANY($1::uuid [])
 `
 
-func (q *Queries) ListShippingDetails(ctx context.Context) ([]ShippingDetail, error) {
-	rows, err := q.db.Query(ctx, listShippingDetails)
+func (q *Queries) ListShippingDetails(ctx context.Context, dollar_1 []uuid.UUID) ([]ShippingDetail, error) {
+	rows, err := q.db.Query(ctx, listShippingDetails, dollar_1)
 	if err != nil {
 		return nil, err
 	}
