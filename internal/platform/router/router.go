@@ -71,7 +71,7 @@ func (s *RouterService) registerRoutes(r *chi.Mux) {
 	imagesRoute := fmt.Sprintf("/artworks/{%s}/images", artwork.ArtworkIDParam)
 	r.Mount(imagesRoute, imageHandler.Routes())
 
-	ordersHandler := payments.NewOrdersHandler(s.db)
+	ordersHandler := payments.NewOrdersHandler(s.db, s.config, s.mailer)
 	r.Mount("/orders", ordersHandler.Routes())
 
 	checkoutHandler := payments.NewCheckoutHandler(s.db, s.config)

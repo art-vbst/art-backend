@@ -71,7 +71,7 @@ func (s *WebhookService) HandleCheckoutComplete(ctx context.Context, session *st
 		return fmt.Errorf("capture payment err: %w", err)
 	}
 
-	if err := s.emails.SendOrderRecieved(order.ID, order.ShippingDetail.Email); err != nil {
+	if err := s.emails.SendOrderReceived(order.ID, order.ShippingDetail.Email); err != nil {
 		return fmt.Errorf("order email err: %w", err)
 	}
 
