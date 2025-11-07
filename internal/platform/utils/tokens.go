@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/art-vbst/art-backend/internal/auth/domain"
-	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -34,9 +33,8 @@ type RefreshClaims struct {
 	jwt.RegisteredClaims
 }
 
-func CreateAccessToken(user *domain.User) (string, error) {
-	env := config.Load()
-	byteSecret := []byte(env.JwtSecret)
+func CreateAccessToken(user *domain.User, secret string) (string, error) {
+	byteSecret := []byte(secret)
 
 	claims := AccessClaims{
 		user.ID,
@@ -55,9 +53,8 @@ func CreateAccessToken(user *domain.User) (string, error) {
 	return token.SignedString(byteSecret)
 }
 
-func CreateRefreshToken(userID uuid.UUID, existingExpiresAt *time.Time) (string, *RefreshClaims, error) {
-	env := config.Load()
-	byteSecret := []byte(env.JwtSecret)
+func CreateRefreshToken(userID uuid.UUID, existingExpiresAt *time.Time, secret string) (string, *RefreshClaims, error) {
+	byteSecret := []byte(secret)
 
 	expiresAt := time.Now().Add(RefreshExpiration)
 	if existingExpiresAt != nil {
@@ -86,14 +83,12 @@ func CreateRefreshToken(userID uuid.UUID, existingExpiresAt *time.Time) (string,
 	return tokenString, &claims, nil
 }
 
-func ParseAccessToken(tokenStr string) (*AccessClaims, error) {
-	env := config.Load()
-
+func ParseAccessToken(tokenStr string, secret string) (*AccessClaims, error) {
 	keyFunc := func(t *jwt.Token) (any, error) {
 		if t.Method.Alg() != jwt.SigningMethodHS512.Alg() {
 			return nil, ErrBadAlgorithm
 		}
-		return []byte(env.JwtSecret), nil
+		return []byte(secret), nil
 	}
 
 	claims := &AccessClaims{}
@@ -117,14 +112,12 @@ func ParseAccessToken(tokenStr string) (*AccessClaims, error) {
 	return claims, nil
 }
 
-func ParseRefreshToken(tokenStr string) (*RefreshClaims, error) {
-	env := config.Load()
-
+func ParseRefreshToken(tokenStr string, secret string) (*RefreshClaims, error) {
 	keyFunc := func(t *jwt.Token) (any, error) {
 		if t.Method.Alg() != jwt.SigningMethodHS512.Alg() {
 			return nil, ErrBadAlgorithm
 		}
-		return []byte(env.JwtSecret), nil
+		return []byte(secret), nil
 	}
 
 	claims := &RefreshClaims{}

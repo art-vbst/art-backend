@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/art-vbst/art-backend/internal/platform/config"
@@ -34,11 +36,17 @@ func (s *GCS) Close() {
 }
 
 func (s *GCS) GetObjectName(fileName string) string {
-	return fmt.Sprintf("uploads/%d-%s", time.Now().UnixNano(), fileName)
+	base := filepath.Base(strings.TrimSpace(fileName))
+	safe := sanitizeFileName(base)
+	if safe == "" {
+		safe = "file"
+	}
+	return fmt.Sprintf("uploads/%d-%s", time.Now().UnixNano(), safe)
 }
 
 func (s *GCS) GetObjectURL(objectName string) string {
-	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.bucketName, objectName)
+	escaped := url.PathEscape(objectName)
+	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.bucketName, escaped)
 }
 
 func (s *GCS) UploadObject(objectName, contentType string, file io.Reader) error {
@@ -142,4 +150,28 @@ func (s *GCS) getAccessTokenFromInternalAPI() (string, error) {
 		return "", err
 	}
 	return data.AccessToken, nil
+}
+
+func sanitizeFileName(name string) string {
+	const maxLen = 150
+	var b strings.Builder
+	b.Grow(len(name))
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= 'A' && r <= 'Z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '.' || r == '-' || r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('_')
+		}
+		if b.Len() >= maxLen {
+			break
+		}
+	}
+	return strings.Trim(b.String(), "._")
 }

@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	artwork "github.com/art-vbst/art-backend/internal/artwork/transport"
@@ -58,16 +59,28 @@ func (s *RouterService) registerMiddleware(r *chi.Mux) {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	r.Use(securityHeaders)
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("X-XSS-Protection", "0")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *RouterService) registerRoutes(r *chi.Mux) {
-	authHandler := auth.New(s.db)
+	authHandler := auth.New(s.db, s.config)
 	r.Mount("/auth", authHandler.Routes())
 
-	artworkHandler := artwork.NewArtworkHandler(s.db)
+	artworkHandler := artwork.NewArtworkHandler(s.db, s.config)
 	r.Mount("/artworks", artworkHandler.Routes())
 
-	imageHandler := artwork.NewImageHandler(s.db, s.provider)
+	imageHandler := artwork.NewImageHandler(s.db, s.provider, s.config)
 	imagesRoute := fmt.Sprintf("/artworks/{%s}/images", artwork.ArtworkIDParam)
 	r.Mount(imagesRoute, imageHandler.Routes())
 

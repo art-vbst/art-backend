@@ -18,12 +18,13 @@ import (
 
 type OrdersHandler struct {
 	service *service.OrdersService
+	env     *config.Config
 }
 
 func NewOrdersHandler(db *store.Store, env *config.Config, mailer mailer.Mailer) *OrdersHandler {
 	emails := service.NewEmailService(mailer, env.EmailSignature)
 	service := service.NewOrderService(repo.New(db), emails)
-	return &OrdersHandler{service: service}
+	return &OrdersHandler{service: service, env: env}
 }
 
 func (h *OrdersHandler) Routes() chi.Router {
@@ -36,7 +37,7 @@ func (h *OrdersHandler) Routes() chi.Router {
 }
 
 func (h *OrdersHandler) list(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 
@@ -56,7 +57,7 @@ func (h *OrdersHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrdersHandler) detail(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 
@@ -107,7 +108,7 @@ type updateStatusPayload struct {
 }
 
 func (h *OrdersHandler) updateStatus(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 

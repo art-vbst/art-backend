@@ -9,6 +9,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/artwork/repo"
 	"github.com/art-vbst/art-backend/internal/artwork/service"
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/go-chi/chi/v5"
@@ -16,11 +17,12 @@ import (
 
 type ArtworkHandler struct {
 	service *service.ArtworkService
+	env     *config.Config
 }
 
-func NewArtworkHandler(db *store.Store) *ArtworkHandler {
+func NewArtworkHandler(db *store.Store, env *config.Config) *ArtworkHandler {
 	service := service.NewArtworkService(repo.New(db))
-	return &ArtworkHandler{service: service}
+	return &ArtworkHandler{service: service, env: env}
 }
 
 func (h *ArtworkHandler) Routes() chi.Router {
@@ -50,10 +52,11 @@ func (h *ArtworkHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ArtworkHandler) create(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
 	var body domain.ArtworkPayload
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
@@ -82,12 +85,13 @@ func (h *ArtworkHandler) detail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ArtworkHandler) update(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 
 	id := chi.URLParam(r, "id")
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
 	var body domain.ArtworkPayload
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
@@ -104,7 +108,7 @@ func (h *ArtworkHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ArtworkHandler) delete(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 

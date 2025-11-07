@@ -8,6 +8,7 @@ import (
 
 	"github.com/art-vbst/art-backend/internal/auth/domain"
 	"github.com/art-vbst/art-backend/internal/auth/repo"
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/google/uuid"
 )
@@ -22,10 +23,11 @@ var (
 
 type AuthService struct {
 	repo repo.Repo
+	env  *config.Config
 }
 
-func New(repo repo.Repo) *AuthService {
-	return &AuthService{repo: repo}
+func New(repo repo.Repo, env *config.Config) *AuthService {
+	return &AuthService{repo: repo, env: env}
 }
 
 type LoginData struct {
@@ -122,7 +124,7 @@ func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*LoginData,
 }
 
 func (s *AuthService) GetRefreshTokenFromString(ctx context.Context, presentedToken string) (*domain.RefreshToken, error) {
-	claims, err := utils.ParseRefreshToken(presentedToken)
+	claims, err := utils.ParseRefreshToken(presentedToken, s.env.JwtSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +182,7 @@ func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, e
 		sessionID = &existingToken.SessionID
 	}
 
-	tokenString, claims, err := utils.CreateRefreshToken(userID, expiresAt)
+	tokenString, claims, err := utils.CreateRefreshToken(userID, expiresAt, s.env.JwtSecret)
 	if err != nil {
 		return "", err
 	}
@@ -211,5 +213,5 @@ func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, e
 }
 
 func (s *AuthService) issueAccessToken(user *domain.User) (string, error) {
-	return utils.CreateAccessToken(user)
+	return utils.CreateAccessToken(user, s.env.JwtSecret)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/artwork/repo"
 	"github.com/art-vbst/art-backend/internal/artwork/service"
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/storage"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
@@ -27,11 +28,12 @@ var (
 
 type ImageHandler struct {
 	service *service.ImageService
+	env     *config.Config
 }
 
-func NewImageHandler(db *store.Store, provider storage.Provider) *ImageHandler {
+func NewImageHandler(db *store.Store, provider storage.Provider, env *config.Config) *ImageHandler {
 	service := service.NewImageService(repo.New(db), provider)
-	return &ImageHandler{service: service}
+	return &ImageHandler{service: service, env: env}
 }
 
 func (h *ImageHandler) Routes() chi.Router {
@@ -48,10 +50,11 @@ const (
 )
 
 func (h *ImageHandler) create(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 12*utils.MB)
 	data, err := h.parseCreateRequest(r)
 	if err != nil {
 		switch {
@@ -115,11 +118,11 @@ func (h *ImageHandler) parseCreateRequest(r *http.Request) (*service.CreateImage
 }
 
 type updatePayload struct {
-	IsMainImage string `json:"is_main_image"`
+	IsMainImage bool `json:"is_main_image"`
 }
 
 func (h *ImageHandler) update(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 
@@ -135,12 +138,7 @@ func (h *ImageHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isMainImage, err := strconv.ParseBool(body.IsMainImage)
-	if err != nil {
-		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
-	}
-
-	img, err := h.service.Update(r.Context(), artID, id, isMainImage)
+	img, err := h.service.Update(r.Context(), artID, id, body.IsMainImage)
 	if err != nil {
 		handleImgServiceError(w, err)
 		return
@@ -150,7 +148,7 @@ func (h *ImageHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ImageHandler) delete(w http.ResponseWriter, r *http.Request) {
-	if _, err := utils.Authenticate(w, r); err != nil {
+	if _, err := utils.Authenticate(w, r, h.env.JwtSecret); err != nil {
 		return
 	}
 

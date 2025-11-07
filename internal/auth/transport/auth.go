@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/art-vbst/art-backend/internal/auth/domain"
 	"github.com/art-vbst/art-backend/internal/auth/repo"
 	"github.com/art-vbst/art-backend/internal/auth/service"
+	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/go-chi/chi/v5"
@@ -15,20 +17,24 @@ import (
 
 type AuthHandler struct {
 	service *service.AuthService
+	env     *config.Config
 }
 
-func New(db *store.Store) *AuthHandler {
+func New(db *store.Store, env *config.Config) *AuthHandler {
 	repo := repo.New(db)
-	service := service.New(repo)
-	return &AuthHandler{service: service}
+	service := service.New(repo, env)
+	return &AuthHandler{service: service, env: env}
 }
 
 func (h *AuthHandler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/me", h.me)
-	r.Get("/refresh", h.refresh)
-	r.Post("/login", h.login)
+	r.Post("/refresh", h.refresh)
 	r.Post("/logout", h.logout)
+
+	limiter := utils.NewIPRateLimiter(10, time.Minute)
+	r.With(limiter.Middleware).Post("/login", h.login)
+
 	return r
 }
 
@@ -38,6 +44,7 @@ type LoginRequest struct {
 }
 
 func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
@@ -50,8 +57,8 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SetAccessCookie(w, data.AccessToken)
-	utils.SetRefreshCookie(w, data.RefreshToken)
+	utils.SetAccessCookie(w, data.AccessToken, h.env.CookieDomain)
+	utils.SetRefreshCookie(w, data.RefreshToken, h.env.CookieDomain)
 	utils.RespondJSON(w, http.StatusOK, data.User)
 }
 
@@ -61,7 +68,7 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := utils.ParseAccessToken(token)
+	claims, err := utils.ParseAccessToken(token, h.env.JwtSecret)
 	if err != nil {
 		utils.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
@@ -72,8 +79,8 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SetAccessCookie(w, "")
-	utils.SetRefreshCookie(w, "")
+	utils.SetAccessCookie(w, "", "")
+	utils.SetRefreshCookie(w, "", "")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -83,7 +90,7 @@ func (h *AuthHandler) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := utils.ParseAccessToken(token)
+	claims, err := utils.ParseAccessToken(token, h.env.JwtSecret)
 	if err != nil {
 		utils.RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return
@@ -93,6 +100,7 @@ func (h *AuthHandler) me(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) refresh(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
 	token, err := utils.GetRefreshCookie(w, r)
 	if err != nil {
 		return
@@ -104,8 +112,8 @@ func (h *AuthHandler) refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SetAccessCookie(w, data.AccessToken)
-	utils.SetRefreshCookie(w, data.RefreshToken)
+	utils.SetAccessCookie(w, data.AccessToken, h.env.CookieDomain)
+	utils.SetRefreshCookie(w, data.RefreshToken, h.env.CookieDomain)
 	utils.RespondJSON(w, http.StatusOK, data.User)
 }
 

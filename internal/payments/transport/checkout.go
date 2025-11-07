@@ -39,6 +39,7 @@ type CheckoutResponse struct {
 }
 
 func (h *CheckoutHandler) handleCheckout(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
 	var req CheckoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")

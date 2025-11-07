@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	artrepo "github.com/art-vbst/art-backend/internal/artwork/repo"
 	payrepo "github.com/art-vbst/art-backend/internal/payments/repo"
@@ -38,11 +39,14 @@ func NewWebhookHandler(db *store.Store, env *config.Config, mailer mailer.Mailer
 
 func (h *WebhookHandler) Routes() *chi.Mux {
 	r := chi.NewRouter()
-	r.Post("/", h.post)
+	// Per-IP rate limit webhook hits
+	limiter := utils.NewIPRateLimiter(60, time.Minute)
+	r.With(limiter.Middleware).Post("/", h.post)
 	return r
 }
 
 func (h *WebhookHandler) post(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		utils.RespondError(w, http.StatusInternalServerError, "failed to read request body")

@@ -38,14 +38,16 @@ type AuthCookieParams struct {
 	name   string
 	token  string
 	path   string
+	domain string
 	maxAge int
 }
 
-func SetAccessCookie(w http.ResponseWriter, token string) {
+func SetAccessCookie(w http.ResponseWriter, token string, domain string) {
 	params := &AuthCookieParams{
 		name:   AccessCookieName,
 		token:  token,
 		path:   "/",
+		domain: domain,
 		maxAge: int(AccessExpiration.Seconds()),
 	}
 
@@ -56,11 +58,12 @@ func SetAccessCookie(w http.ResponseWriter, token string) {
 	SetAuthCookie(w, params)
 }
 
-func SetRefreshCookie(w http.ResponseWriter, token string) {
+func SetRefreshCookie(w http.ResponseWriter, token string, domain string) {
 	params := &AuthCookieParams{
 		name:   RefreshCookieName,
 		token:  token,
 		path:   "/auth/refresh",
+		domain: domain,
 		maxAge: int(RefreshExpiration.Seconds()),
 	}
 
@@ -72,13 +75,11 @@ func SetRefreshCookie(w http.ResponseWriter, token string) {
 }
 
 func SetAuthCookie(w http.ResponseWriter, params *AuthCookieParams) {
-	env := config.Load()
-
 	cookie := &http.Cookie{
 		Name:     params.name,
 		Value:    params.token,
 		Path:     params.path,
-		Domain:   env.CookieDomain,
+		Domain:   params.domain,
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
@@ -115,13 +116,13 @@ func GetSessionCookie(w http.ResponseWriter, r *http.Request, name string) (stri
 	return cookie.Value, nil
 }
 
-func Authenticate(w http.ResponseWriter, r *http.Request) (*AccessClaims, error) {
+func Authenticate(w http.ResponseWriter, r *http.Request, secret string) (*AccessClaims, error) {
 	token, err := GetAccessCookie(w, r)
 	if err != nil {
 		return nil, err
 	}
 
-	claims, err := ParseAccessToken(token)
+	claims, err := ParseAccessToken(token, secret)
 	if err != nil {
 		RespondError(w, http.StatusUnauthorized, "unauthorized")
 		return nil, err

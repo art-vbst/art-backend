@@ -5,12 +5,15 @@ import (
 	"log"
 	"net/http"
 
+	"time"
+
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/pooler"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/mailer"
 	"github.com/art-vbst/art-backend/internal/platform/router"
 	"github.com/art-vbst/art-backend/internal/platform/storage"
+	"github.com/art-vbst/art-backend/internal/platform/utils"
 )
 
 func main() {
@@ -32,8 +35,18 @@ func main() {
 		log.Printf("[WARNING] debug mode enabled")
 	}
 
+	srv := &http.Server{
+		Addr:              ":" + env.Port,
+		Handler:           r,
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 * utils.MB,
+	}
+
 	log.Printf("Server starting on :%s", env.Port)
-	if err := http.ListenAndServe(":"+env.Port, r); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
