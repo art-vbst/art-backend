@@ -9,8 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
-func (p *Postgres) ListArtworks(ctx context.Context) ([]domain.Artwork, error) {
-	artworks, err := p.db.Queries().ListArtworks(ctx)
+func (p *Postgres) ListArtworks(ctx context.Context, statuses []domain.ArtworkStatus) ([]domain.Artwork, error) {
+	statusStrings := make([]string, len(statuses))
+	for i, status := range statuses {
+		statusStrings[i] = string(status)
+	}
+
+	artworks, err := p.db.Queries().ListArtworks(ctx, statusStrings)
 	if err != nil {
 		return nil, err
 	}

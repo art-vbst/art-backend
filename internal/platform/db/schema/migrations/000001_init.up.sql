@@ -2,7 +2,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE artwork_status AS ENUM (
     'available',
-    'pending',
     'sold',
     'not_for_sale',
     'unavailable',

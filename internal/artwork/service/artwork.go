@@ -22,8 +22,8 @@ func NewArtworkService(repo repo.Repo) *ArtworkService {
 	return &ArtworkService{repo: repo}
 }
 
-func (s *ArtworkService) List(ctx context.Context) ([]domain.Artwork, error) {
-	return s.repo.ListArtworks(ctx)
+func (s *ArtworkService) List(ctx context.Context, statuses []domain.ArtworkStatus) ([]domain.Artwork, error) {
+	return s.repo.ListArtworks(ctx, statuses)
 }
 
 func (s *ArtworkService) Create(ctx context.Context, body *domain.ArtworkPayload) (*domain.Artwork, error) {

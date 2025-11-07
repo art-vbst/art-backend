@@ -62,7 +62,7 @@ WITH inserted_artworks AS (
       150000,
       false,
       4,
-      'pending',
+      'available',
       'oil_panel',
       'landscape'
     ),

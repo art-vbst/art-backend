@@ -105,7 +105,6 @@ type ArtworkStatus string
 
 const (
 	ArtworkStatusAvailable   ArtworkStatus = "available"
-	ArtworkStatusPending     ArtworkStatus = "pending"
 	ArtworkStatusSold        ArtworkStatus = "sold"
 	ArtworkStatusNotForSale  ArtworkStatus = "not_for_sale"
 	ArtworkStatusUnavailable ArtworkStatus = "unavailable"

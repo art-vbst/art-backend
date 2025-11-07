@@ -31,7 +31,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	ListArtworkStripeData(ctx context.Context, dollar_1 []uuid.UUID) ([]ListArtworkStripeDataRow, error)
-	ListArtworks(ctx context.Context) ([]ListArtworksRow, error)
+	ListArtworks(ctx context.Context, dollar_1 []string) ([]ListArtworksRow, error)
 	ListOrders(ctx context.Context) ([]Order, error)
 	ListPaymentRequirements(ctx context.Context) ([]PaymentRequirement, error)
 	ListPayments(ctx context.Context) ([]Payment, error)

@@ -258,6 +258,9 @@ FROM artworks a
             created_at
         LIMIT 1
     ) i ON true
+WHERE $1::text [] IS NULL
+    OR cardinality($1) = 0
+    OR a.status = ANY($1::artwork_status [])
 ORDER BY a.sort_order,
     a.created_at DESC
 `
@@ -286,8 +289,8 @@ type ListArtworksRow struct {
 	ImageCreatedAt pgtype.Timestamp `db:"image_created_at" json:"image_created_at"`
 }
 
-func (q *Queries) ListArtworks(ctx context.Context) ([]ListArtworksRow, error) {
-	rows, err := q.db.Query(ctx, listArtworks)
+func (q *Queries) ListArtworks(ctx context.Context, dollar_1 []string) ([]ListArtworksRow, error) {
+	rows, err := q.db.Query(ctx, listArtworks, dollar_1)
 	if err != nil {
 		return nil, err
 	}

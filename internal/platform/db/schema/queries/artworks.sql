@@ -47,6 +47,9 @@ FROM artworks a
             created_at
         LIMIT 1
     ) i ON true
+WHERE $1::text [] IS NULL
+    OR cardinality($1) = 0
+    OR a.status = ANY($1::artwork_status [])
 ORDER BY a.sort_order,
     a.created_at DESC;
 

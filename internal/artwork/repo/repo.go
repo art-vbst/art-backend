@@ -10,7 +10,7 @@ import (
 )
 
 type Repo interface {
-	ListArtworks(ctx context.Context) ([]domain.Artwork, error)
+	ListArtworks(ctx context.Context, statuses []domain.ArtworkStatus) ([]domain.Artwork, error)
 	CreateArtwork(ctx context.Context, body *domain.ArtworkPayload) (*domain.Artwork, error)
 	CreateImage(ctx context.Context, data *domain.CreateImagePayload) (*domain.Image, error)
 	GetArtworkDetail(ctx context.Context, id uuid.UUID) (*domain.Artwork, error)
