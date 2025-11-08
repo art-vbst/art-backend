@@ -118,7 +118,7 @@ func (h *ImageHandler) parseCreateRequest(r *http.Request) (*service.CreateImage
 }
 
 type updatePayload struct {
-	IsMainImage bool `json:"is_main_image"`
+	IsMainImage string `json:"is_main_image"`
 }
 
 func (h *ImageHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +138,13 @@ func (h *ImageHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	img, err := h.service.Update(r.Context(), artID, id, body.IsMainImage)
+	isMainImage, err := strconv.ParseBool(body.IsMainImage)
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	img, err := h.service.Update(r.Context(), artID, id, isMainImage)
 	if err != nil {
 		handleImgServiceError(w, err)
 		return
