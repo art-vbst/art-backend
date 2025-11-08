@@ -92,4 +92,10 @@ func (s *RouterService) registerRoutes(r *chi.Mux) {
 
 	webhookHandler := payments.NewWebhookHandler(s.db, s.config, s.mailer)
 	r.Mount("/stripe/webhook", webhookHandler.Routes())
+
+	if config.IsDebug() {
+		if localStorage, ok := s.provider.(*storage.LocalStorage); ok {
+			r.Mount("/uploads", serveLocalStorage(localStorage))
+		}
+	}
 }

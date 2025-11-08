@@ -17,6 +17,7 @@ type Config struct {
 	JwtSecret           string
 	DbUrl               string
 	GCSBucketName       string
+	LocalStorageDir     string
 	StripeSecret        string
 	StripeWebhookSecret string
 	MailgunDomain       string
@@ -41,6 +42,7 @@ func Load() *Config {
 		JwtSecret:           os.Getenv("JWT_SECRET"),
 		DbUrl:               os.Getenv("DB_URL"),
 		GCSBucketName:       os.Getenv("GCS_BUCKET_NAME"),
+		LocalStorageDir:     os.Getenv("LOCAL_STORAGE_DIR"),
 		StripeSecret:        os.Getenv("STRIPE_SECRET"),
 		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
 		MailgunDomain:       os.Getenv("MAILGUN_DOMAIN"),
@@ -84,7 +86,7 @@ func loadRoutedEnvFile() {
 }
 
 func ensureRequiredVars(config *Config) {
-	optionalVars := []string{"Debug", "TestEmail"}
+	optionalVars := []string{"Debug", "TestEmail", "LocalStorageDir"}
 
 	typ := reflect.TypeOf(*config)
 	val := reflect.ValueOf(*config)

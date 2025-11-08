@@ -8,6 +8,9 @@
 .env
 .env.*
 
+# Local Storage
+/storage/
+
 # IDE
 .vscode/
 .idea/

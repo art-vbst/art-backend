@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"io"
 	"mime/multipart"
 
@@ -22,5 +23,11 @@ type Provider interface {
 }
 
 func NewProvider(env *config.Config) Provider {
-	return NewGCS(env)
+	switch {
+	case config.IsDebug() && env.LocalStorageDir != "":
+		baseUrl := fmt.Sprintf("http://localhost:%s", env.Port)
+		return NewLocalStorage(baseUrl, env.LocalStorageDir)
+	default:
+		return NewGCS(env.GCSBucketName)
+	}
 }

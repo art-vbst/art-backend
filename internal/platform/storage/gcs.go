@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/art-vbst/art-backend/internal/platform/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -21,15 +20,15 @@ type GCS struct {
 	tokenSource oauth2.TokenSource
 }
 
-func NewGCS(env *config.Config) *GCS {
+func NewGCS(bucketName string) *GCS {
 	ctx := context.Background()
 
 	tokenSource, err := google.DefaultTokenSource(ctx, "https://www.googleapis.com/auth/devstorage.full_control")
 	if err != nil {
-		return &GCS{bucketName: env.GCSBucketName, tokenSource: nil}
+		return &GCS{bucketName: bucketName, tokenSource: nil}
 	}
 
-	return &GCS{bucketName: env.GCSBucketName, tokenSource: tokenSource}
+	return &GCS{bucketName: bucketName, tokenSource: tokenSource}
 }
 
 func (s *GCS) Close() {
