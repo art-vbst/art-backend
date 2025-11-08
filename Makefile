@@ -1,4 +1,4 @@
-.PHONY: help build run test clean exec sqlc forward-stripe migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql psql
+.PHONY: help build run test clean exec sqlc forward-stripe migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force lint-sql fix-sql psql release-patch release-minor release-major
 
 ENV ?= dev
 
@@ -42,6 +42,9 @@ help:
 	@echo "  make psql           - Connect to PostgreSQL database"
 	@echo "  make lint-sql       - Lint SQL files"
 	@echo "  make fix-sql        - Fix SQL files"
+	@echo "  make release-patch  - Create a patch release (increments v0.0.X)"
+	@echo "  make release-minor  - Create a minor release (increments v0.X.0)"
+	@echo "  make release-major  - Create a major release (increments vX.0.0)"
 	@echo ""
 	@echo "Environment:"
 	@echo "  All commands accept an 'env' parameter (default: dev)"
@@ -168,3 +171,63 @@ lint-sql:
 fix-sql:
 	sqlfluff fix internal/platform/db/schema/migrations/
 	sqlfluff fix internal/platform/db/schema/queries/
+
+release-patch:
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: Working tree is not clean. Please commit or stash your changes before creating a release."; \
+		exit 1; \
+	fi; \
+	LATEST_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+	CURRENT_VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
+	MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
+	MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
+	PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
+	NEW_PATCH=$$((PATCH + 1)); \
+	NEW_VERSION="v$$MAJOR.$$MINOR.$$NEW_PATCH"; \
+	echo "Creating patch release $$NEW_VERSION..."; \
+	echo "$$NEW_VERSION" > VERSION; \
+	git add VERSION; \
+	git commit -m "chore(release): patch $$NEW_VERSION"; \
+	git tag -a $$NEW_VERSION -m "chore(release): patch $$NEW_VERSION"; \
+	echo "Created release $$NEW_VERSION"; \
+	echo "Run 'git push && git push --tags' to push the release"
+
+release-minor:
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: Working tree is not clean. Please commit or stash your changes before creating a release."; \
+		exit 1; \
+	fi; \
+	LATEST_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+	CURRENT_VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
+	MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
+	MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
+	PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
+	NEW_MINOR=$$((MINOR + 1)); \
+	NEW_VERSION="v$$MAJOR.$$NEW_MINOR.0"; \
+	echo "Creating minor release $$NEW_VERSION..."; \
+	echo "$$NEW_VERSION" > VERSION; \
+	git add VERSION; \
+	git commit -m "chore(release): minor $$NEW_VERSION"; \
+	git tag -a $$NEW_VERSION -m "chore(release): minor $$NEW_VERSION"; \
+	echo "Created release $$NEW_VERSION"; \
+	echo "Run 'git push && git push --tags' to push the release"
+
+release-major:
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: Working tree is not clean. Please commit or stash your changes before creating a release."; \
+		exit 1; \
+	fi; \
+	LATEST_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+	CURRENT_VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
+	MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
+	MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
+	PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
+	NEW_MAJOR=$$((MAJOR + 1)); \
+	NEW_VERSION="v$$NEW_MAJOR.0.0"; \
+	echo "Creating major release $$NEW_VERSION..."; \
+	echo "$$NEW_VERSION" > VERSION; \
+	git add VERSION; \
+	git commit -m "chore(release): major $$NEW_VERSION"; \
+	git tag -a $$NEW_VERSION -m "chore(release): major $$NEW_VERSION"; \
+	echo "Created release $$NEW_VERSION"; \
+	echo "Run 'git push && git push --tags' to push the release"
