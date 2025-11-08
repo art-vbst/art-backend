@@ -37,9 +37,9 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 		widthInches, _ := row.WidthInches.Float64Value()
 		heightInches, _ := row.HeightInches.Float64Value()
 
-		image := domain.Image{}
+		images := []domain.Image{}
 		if row.ImageID != uuid.Nil {
-			image = domain.Image{
+			images = append(images, domain.Image{
 				ID:          row.ImageID,
 				ArtworkID:   row.ID,
 				IsMainImage: true,
@@ -48,7 +48,7 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 				ImageWidth:  row.ImageWidth,
 				ImageHeight: row.ImageHeight,
 				CreatedAt:   row.ImageCreatedAt.Time,
-			}
+			})
 		}
 
 		var soldAt *time.Time
@@ -71,7 +71,7 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 			Medium:         row.Medium,
 			Category:       row.Category,
 			CreatedAt:      row.CreatedAt.Time,
-			Images:         []domain.Image{image},
+			Images:         images,
 		}
 
 		artworks = append(artworks, artwork)
@@ -84,18 +84,22 @@ func toDomainArtworkCheckoutListRow(rows []generated.ListArtworkStripeDataRow) [
 	artworks := []domain.Artwork{}
 
 	for _, row := range rows {
-		image := domain.Image{
-			ID:          row.ImageID,
-			ArtworkID:   row.ID,
-			IsMainImage: true,
-			ImageURL:    row.ImageUrl,
+		images := []domain.Image{}
+
+		if row.ImageID != uuid.Nil {
+			images = append(images, domain.Image{
+				ID:          row.ImageID,
+				ArtworkID:   row.ID,
+				IsMainImage: true,
+				ImageURL:    row.ImageUrl,
+			})
 		}
 
 		artwork := domain.Artwork{
 			ID:         row.ID,
 			Title:      row.Title,
 			PriceCents: row.PriceCents,
-			Images:     []domain.Image{image},
+			Images:     images,
 		}
 
 		artworks = append(artworks, artwork)
