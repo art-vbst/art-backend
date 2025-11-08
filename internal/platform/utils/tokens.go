@@ -11,7 +11,7 @@ import (
 
 const (
 	Issuer            = "art-vbst/art-backend"
-	AccessExpiration  = 1 * time.Minute
+	AccessExpiration  = 5 * time.Minute
 	RefreshExpiration = 7 * 24 * time.Hour
 )
 
