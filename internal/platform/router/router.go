@@ -77,7 +77,7 @@ func (s *RouterService) registerRoutes(r *chi.Mux) {
 	authHandler := auth.New(s.db, s.config)
 	r.Mount("/auth", authHandler.Routes())
 
-	artworkHandler := artwork.NewArtworkHandler(s.db, s.config)
+	artworkHandler := artwork.NewArtworkHandler(s.db, s.provider, s.config)
 	r.Mount("/artworks", artworkHandler.Routes())
 
 	imageHandler := artwork.NewImageHandler(s.db, s.provider, s.config)

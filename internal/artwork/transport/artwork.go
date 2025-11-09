@@ -11,8 +11,10 @@ import (
 	"github.com/art-vbst/art-backend/internal/artwork/service"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
+	"github.com/art-vbst/art-backend/internal/platform/storage"
 	"github.com/art-vbst/art-backend/internal/platform/utils"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type ArtworkHandler struct {
@@ -20,8 +22,8 @@ type ArtworkHandler struct {
 	env     *config.Config
 }
 
-func NewArtworkHandler(db *store.Store, env *config.Config) *ArtworkHandler {
-	service := service.NewArtworkService(repo.New(db))
+func NewArtworkHandler(db *store.Store, provider storage.Provider, env *config.Config) *ArtworkHandler {
+	service := service.NewArtworkService(repo.New(db), provider)
 	return &ArtworkHandler{service: service, env: env}
 }
 
@@ -73,7 +75,11 @@ func (h *ArtworkHandler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ArtworkHandler) detail(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "invalid artwork id")
+		return
+	}
 
 	artwork, err := h.service.Detail(r.Context(), id)
 	if err != nil {
@@ -89,7 +95,11 @@ func (h *ArtworkHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := chi.URLParam(r, "id")
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "invalid artwork id")
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
 	var body domain.ArtworkPayload
@@ -112,7 +122,11 @@ func (h *ArtworkHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := chi.URLParam(r, "id")
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "invalid artwork id")
+		return
+	}
 
 	if err := h.service.Delete(r.Context(), id); err != nil {
 		handleArtworkServiceError(w, err)
@@ -126,8 +140,6 @@ func handleArtworkServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrArtworkNotFound):
 		utils.RespondError(w, http.StatusNotFound, "Artwork not found")
-	case errors.Is(err, service.ErrInvalidArtworkUUID):
-		utils.RespondError(w, http.StatusNotFound, "Invalid artwork ID format")
 	default:
 		log.Printf("artwork service error: %v", err)
 		utils.RespondServerError(w)

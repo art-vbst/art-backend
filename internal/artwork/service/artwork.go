@@ -6,20 +6,21 @@ import (
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/artwork/repo"
+	"github.com/art-vbst/art-backend/internal/platform/storage"
 	"github.com/google/uuid"
 )
 
 var (
-	ErrInvalidArtworkUUID = errors.New("invalid artwork UUID")
-	ErrArtworkNotFound    = errors.New("artwork not found")
+	ErrArtworkNotFound = errors.New("artwork not found")
 )
 
 type ArtworkService struct {
-	repo repo.Repo
+	repo         repo.Repo
+	imageService *ImageService
 }
 
-func NewArtworkService(repo repo.Repo) *ArtworkService {
-	return &ArtworkService{repo: repo}
+func NewArtworkService(repo repo.Repo, provider storage.Provider) *ArtworkService {
+	return &ArtworkService{repo: repo, imageService: NewImageService(repo, provider)}
 }
 
 func (s *ArtworkService) List(ctx context.Context, statuses []domain.ArtworkStatus) ([]domain.Artwork, error) {
@@ -30,12 +31,7 @@ func (s *ArtworkService) Create(ctx context.Context, body *domain.ArtworkPayload
 	return s.repo.CreateArtwork(ctx, body)
 }
 
-func (s *ArtworkService) Detail(ctx context.Context, idString string) (*domain.Artwork, error) {
-	id, err := uuid.Parse(idString)
-	if err != nil {
-		return nil, ErrInvalidArtworkUUID
-	}
-
+func (s *ArtworkService) Detail(ctx context.Context, id uuid.UUID) (*domain.Artwork, error) {
 	artwork, err := s.repo.GetArtworkDetail(ctx, id)
 	if err != nil {
 		return nil, err
@@ -47,20 +43,24 @@ func (s *ArtworkService) Detail(ctx context.Context, idString string) (*domain.A
 	return artwork, nil
 }
 
-func (s *ArtworkService) Update(ctx context.Context, idString string, body *domain.ArtworkPayload) (*domain.Artwork, error) {
-	id, err := uuid.Parse(idString)
-	if err != nil {
-		return nil, ErrInvalidArtworkUUID
-	}
-
+func (s *ArtworkService) Update(ctx context.Context, id uuid.UUID, body *domain.ArtworkPayload) (*domain.Artwork, error) {
 	return s.repo.UpdateArtwork(ctx, id, body)
 }
 
-func (s *ArtworkService) Delete(ctx context.Context, idString string) error {
-	id, err := uuid.Parse(idString)
+func (s *ArtworkService) Delete(ctx context.Context, id uuid.UUID) error {
+	artwork, err := s.repo.GetArtworkDetail(ctx, id)
 	if err != nil {
-		return ErrInvalidArtworkUUID
+		return err
+	}
+	if artwork == nil {
+		return ErrArtworkNotFound
 	}
 
-	return s.repo.DeleteArtwork(ctx, id)
+	for _, image := range artwork.Images {
+		if err := s.imageService.Delete(ctx, artwork.ID, image.ID); err != nil {
+			return err
+		}
+	}
+
+	return s.repo.DeleteArtwork(ctx, artwork.ID)
 }
