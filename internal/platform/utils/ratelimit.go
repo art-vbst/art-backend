@@ -32,7 +32,6 @@ func (l *IPRateLimiter) Middleware(next http.Handler) http.Handler {
 
 		l.mu.Lock()
 		timestamps := l.hits[ip]
-		// prune old
 		i := 0
 		for _, t := range timestamps {
 			if t.After(cutoff) {

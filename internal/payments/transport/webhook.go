@@ -39,7 +39,6 @@ func NewWebhookHandler(db *store.Store, env *config.Config, mailer mailer.Mailer
 
 func (h *WebhookHandler) Routes() *chi.Mux {
 	r := chi.NewRouter()
-	// Per-IP rate limit webhook hits
 	limiter := utils.NewIPRateLimiter(60, time.Minute)
 	r.With(limiter.Middleware).Post("/", h.post)
 	return r

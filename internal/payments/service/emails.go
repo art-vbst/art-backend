@@ -25,7 +25,7 @@ func (s *EmailService) SendOrderReceived(orderID uuid.UUID, to string) error {
 	subject := "Order Received!"
 
 	body := "Thank you for your order!\n\n" +
-		"I'll get started processing your order. I'll let you know when it's shipped, and I'll provide you with a tracking link.\n\n" +
+		"Your order is being processed. You'll receive a notification when it ships, along with a tracking link if available.\n\n" +
 		"If you have any questions or comments, feel free to reach out!\n\n" +
 		s.signature + "\n\n" +
 		"Order ID: " + orderID.String()
