@@ -226,6 +226,10 @@ func (s *CheckoutService) buildShippingAddressParams() *stripe.CheckoutSessionSh
 }
 
 func (s *CheckoutService) buildShippingOptionParams() []*stripe.CheckoutSessionShippingOptionParams {
+	if !paydomain.ShippingEnabled {
+		return nil
+	}
+
 	shippingOption := &stripe.CheckoutSessionShippingOptionParams{
 		ShippingRateData: &stripe.CheckoutSessionShippingOptionShippingRateDataParams{
 			DisplayName: stripe.String("Standard"),

@@ -10,6 +10,7 @@ import (
 const (
 	DefaultShippingCents = 1_000
 	DefaultCurrency      = "usd"
+	ShippingEnabled      = false
 )
 
 type OrderStatus = generated.OrderStatus
