@@ -138,10 +138,15 @@ func (s *CheckoutService) getOrderPaymentRequirement(artworks []artdomain.Artwor
 		subtotal += artwork.PriceCents
 	}
 
+	shippingCents := int32(0)
+	if paydomain.ShippingEnabled {
+		shippingCents = paydomain.DefaultShippingCents
+	}
+
 	return paydomain.PaymentRequirement{
 		SubtotalCents: subtotal,
-		ShippingCents: paydomain.DefaultShippingCents,
-		TotalCents:    subtotal + paydomain.DefaultShippingCents,
+		ShippingCents: shippingCents,
+		TotalCents:    subtotal + shippingCents,
 		Currency:      paydomain.DefaultCurrency,
 	}
 }
