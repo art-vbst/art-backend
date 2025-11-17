@@ -28,7 +28,7 @@ func (p *Postgres) CreateUser(ctx context.Context, email string, passwordHash st
 			return err
 		}
 
-		user = p.toDomainUser(&userRow)
+		user = p.toDomainUserWithHash(&userRow)
 		return nil
 	})
 
@@ -69,7 +69,7 @@ func (p *Postgres) GetUser(ctx context.Context, id uuid.UUID) (*domain.UserWithH
 	if err != nil {
 		return nil, err
 	}
-	return p.toDomainUser(&user), nil
+	return p.toDomainUserWithHash(&user), nil
 }
 
 func (p *Postgres) GetUserByEmail(ctx context.Context, email string) (*domain.UserWithHash, error) {
@@ -77,7 +77,7 @@ func (p *Postgres) GetUserByEmail(ctx context.Context, email string) (*domain.Us
 	if err != nil {
 		return nil, err
 	}
-	return p.toDomainUser(&user), nil
+	return p.toDomainUserWithHash(&user), nil
 }
 
 func (p *Postgres) GetRefreshTokenByJti(ctx context.Context, jti uuid.UUID) (*domain.RefreshToken, error) {
@@ -87,6 +87,15 @@ func (p *Postgres) GetRefreshTokenByJti(ctx context.Context, jti uuid.UUID) (*do
 	}
 
 	return p.toDomainRefreshToken(&row), nil
+}
+
+func (p *Postgres) UpdateUserTOTPSecret(ctx context.Context, userID uuid.UUID, secret *string) error {
+	return p.db.DoTx(ctx, func(ctx context.Context, q *generated.Queries) error {
+		return q.UpdateUserTOTPSecret(ctx, generated.UpdateUserTOTPSecretParams{
+			ID:         userID,
+			TotpSecret: secret,
+		})
+	})
 }
 
 func (p *Postgres) RevokeToken(ctx context.Context, id uuid.UUID) error {
@@ -101,11 +110,12 @@ func (p *Postgres) RevokeUserTokens(ctx context.Context, userID uuid.UUID) error
 	})
 }
 
-func (p *Postgres) toDomainUser(row *generated.User) *domain.UserWithHash {
+func (p *Postgres) toDomainUserWithHash(row *generated.User) *domain.UserWithHash {
 	return &domain.UserWithHash{
 		ID:           row.ID,
 		Email:        row.Email,
 		PasswordHash: row.PasswordHash,
+		TOTPSecret:   row.TotpSecret,
 	}
 }
 

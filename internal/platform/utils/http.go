@@ -30,6 +30,7 @@ func RespondServerError(w http.ResponseWriter) {
 }
 
 const (
+	TOTPCookieName    = "totp_token"
 	AccessCookieName  = "access_token"
 	RefreshCookieName = "refresh_token"
 )
@@ -40,6 +41,22 @@ type AuthCookieParams struct {
 	path   string
 	domain string
 	maxAge int
+}
+
+func SetTOTPCookie(w http.ResponseWriter, token string, domain string) {
+	params := &AuthCookieParams{
+		name:   TOTPCookieName,
+		token:  token,
+		path:   "/auth/totp",
+		domain: domain,
+		maxAge: int(TOTPExpiration.Seconds()),
+	}
+
+	if token == "" {
+		params.maxAge = -1
+	}
+
+	SetAuthCookie(w, params)
 }
 
 func SetAccessCookie(w http.ResponseWriter, token string, domain string) {
@@ -91,6 +108,10 @@ func SetAuthCookie(w http.ResponseWriter, params *AuthCookieParams) {
 	}
 
 	http.SetCookie(w, cookie)
+}
+
+func GetTOTPCookie(w http.ResponseWriter, r *http.Request) (string, error) {
+	return GetSessionCookie(w, r, TOTPCookieName)
 }
 
 func GetAccessCookie(w http.ResponseWriter, r *http.Request) (string, error) {

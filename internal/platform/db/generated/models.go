@@ -320,4 +320,5 @@ type User struct {
 	Email        string           `db:"email" json:"email"`
 	PasswordHash string           `db:"password_hash" json:"password_hash"`
 	CreatedAt    pgtype.Timestamp `db:"created_at" json:"created_at"`
+	TotpSecret   *string          `db:"totp_secret" json:"totp_secret"`
 }

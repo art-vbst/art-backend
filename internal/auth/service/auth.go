@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -15,10 +16,13 @@ import (
 
 var (
 	ErrInvalidPassword = errors.New("password validation failed")
+	ErrInvalidTOTP     = errors.New("totp validation failed")
 	ErrTokenMismatch   = errors.New("token mismatch")
 	ErrUserMismatch    = errors.New("user does not match token")
 	ErrUserNotFound    = errors.New("user not found")
 	ErrTokenNotFound   = errors.New("token not found")
+	ErrTokenExpired    = errors.New("token expired")
+	ErrInvalidToken    = errors.New("invalid token")
 )
 
 type AuthService struct {
@@ -30,38 +34,112 @@ func New(repo repo.Repo, env *config.Config) *AuthService {
 	return &AuthService{repo: repo, env: env}
 }
 
-type LoginData struct {
+type UserWithTOTP struct {
+	User        *domain.User
+	TOTPToken   string
+	QRCodeBytes *[]byte
+}
+
+type UserWithTokens struct {
 	User         *domain.User
 	RefreshToken string
 	AccessToken  string
 }
 
-func (s *AuthService) Login(ctx context.Context, email, password string) (*LoginData, error) {
-	user, err := s.GetValidatedUser(ctx, email, password)
+func (s *AuthService) Login(ctx context.Context, email, password string) (*UserWithTOTP, error) {
+	userWithHash, err := s.getValidatedUser(ctx, email, password)
 	if err != nil {
 		return nil, err
+	}
+	user := domain.StripHash(userWithHash)
+
+	var qrCodeBytes []byte
+
+	if userWithHash.TOTPSecret == nil {
+		qrCodeBytes, err = s.initializeTOTP(ctx, user)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	totpToken, err := s.issueTOTPToken(user)
+	if err != nil {
+		return nil, err
+	}
+
+	data := &UserWithTOTP{user, totpToken, &qrCodeBytes}
+	return data, nil
+}
+
+func (s *AuthService) initializeTOTP(ctx context.Context, user *domain.User) ([]byte, error) {
+	key, err := utils.GenerateTOTPSecret(user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	masterKey, err := hex.DecodeString(s.env.TOTPSecret)
+	if err != nil {
+		return nil, err
+	}
+	encryptedTOTPSecret, err := utils.Encrypt(masterKey, key.Secret())
+	if err != nil {
+		return nil, err
+	}
+
+	s.repo.UpdateUserTOTPSecret(ctx, user.ID, &encryptedTOTPSecret)
+
+	return utils.GenerateQRCode(key.URL())
+}
+
+func (s *AuthService) ValidateTOTP(ctx context.Context, token, presentedTOTP string) (*UserWithTokens, error) {
+	totpClaims, err := utils.ParseTOTPToken(token, s.env.JwtSecret)
+	if err != nil {
+		switch {
+		case errors.Is(err, utils.ErrTokenExpired):
+			return nil, ErrTokenExpired
+		case errors.Is(err, utils.ErrInvalidToken), errors.Is(err, utils.ErrBadAlgorithm), errors.Is(err, utils.ErrBadSignature):
+			return nil, ErrInvalidToken
+		default:
+			return nil, err
+		}
+	}
+	userWithHash, err := s.getUser(ctx, totpClaims.UserID)
+	if err != nil {
+		return nil, err
+	}
+	user := domain.StripHash(userWithHash)
+
+	var totpSecret string
+	masterKey, err := hex.DecodeString(s.env.TOTPSecret)
+	if err != nil {
+		return nil, err
+	}
+	if userWithHash.TOTPSecret != nil {
+		decryptedSecret, err := utils.Decrypt(masterKey, *userWithHash.TOTPSecret)
+		if err != nil {
+			return nil, err
+		}
+		totpSecret = decryptedSecret
+	}
+
+	if !utils.IsTOTPValid(presentedTOTP, totpSecret) {
+		return nil, ErrInvalidTOTP
 	}
 
 	refresh, err := s.issueRefreshToken(ctx, user.ID, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	access, err := s.issueAccessToken(user)
 	if err != nil {
 		return nil, err
 	}
 
-	data := &LoginData{
-		User:         user,
-		RefreshToken: refresh,
-		AccessToken:  access,
-	}
-
+	data := &UserWithTokens{user, refresh, access}
 	return data, nil
 }
 
-func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+func (s *AuthService) getUser(ctx context.Context, id uuid.UUID) (*domain.UserWithHash, error) {
 	user, err := s.repo.GetUser(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -70,10 +148,10 @@ func (s *AuthService) GetUser(ctx context.Context, id uuid.UUID) (*domain.User, 
 		return nil, err
 	}
 
-	return domain.StripHash(user), nil
+	return user, nil
 }
 
-func (s *AuthService) GetValidatedUser(ctx context.Context, email, password string) (*domain.User, error) {
+func (s *AuthService) getValidatedUser(ctx context.Context, email, password string) (*domain.UserWithHash, error) {
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -90,19 +168,20 @@ func (s *AuthService) GetValidatedUser(ctx context.Context, email, password stri
 		return nil, ErrInvalidPassword
 	}
 
-	return domain.StripHash(user), nil
+	return user, nil
 }
 
-func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*LoginData, error) {
+func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*UserWithTokens, error) {
 	existingToken, err := s.GetRefreshTokenFromString(ctx, tokenStr)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := s.GetUser(ctx, existingToken.UserID)
+	userWithHash, err := s.getUser(ctx, existingToken.UserID)
 	if err != nil {
 		return nil, err
 	}
+	user := domain.StripHash(userWithHash)
 
 	refresh, err := s.issueRefreshToken(ctx, user.ID, existingToken)
 	if err != nil {
@@ -114,7 +193,7 @@ func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*LoginData,
 		return nil, err
 	}
 
-	data := &LoginData{
+	data := &UserWithTokens{
 		User:         user,
 		RefreshToken: refresh,
 		AccessToken:  access,
@@ -126,7 +205,14 @@ func (s *AuthService) Refresh(ctx context.Context, tokenStr string) (*LoginData,
 func (s *AuthService) GetRefreshTokenFromString(ctx context.Context, presentedToken string) (*domain.RefreshToken, error) {
 	claims, err := utils.ParseRefreshToken(presentedToken, s.env.JwtSecret)
 	if err != nil {
-		return nil, err
+		switch {
+		case errors.Is(err, utils.ErrTokenExpired):
+			return nil, ErrTokenExpired
+		case errors.Is(err, utils.ErrInvalidToken), errors.Is(err, utils.ErrBadAlgorithm), errors.Is(err, utils.ErrBadSignature):
+			return nil, ErrInvalidToken
+		default:
+			return nil, err
+		}
 	}
 
 	jti, err := uuid.Parse(claims.ID)
@@ -169,6 +255,10 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID) error {
 		return err
 	}
 	return nil
+}
+
+func (s *AuthService) issueTOTPToken(user *domain.User) (string, error) {
+	return utils.CreateTOTPToken(user, s.env.JwtSecret)
 }
 
 func (s *AuthService) issueRefreshToken(ctx context.Context, userID uuid.UUID, existingToken *domain.RefreshToken) (string, error) {

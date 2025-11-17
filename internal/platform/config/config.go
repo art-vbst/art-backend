@@ -15,6 +15,7 @@ type Config struct {
 	AdminUrl            string
 	CookieDomain        string
 	JwtSecret           string
+	TOTPSecret          string
 	DbUrl               string
 	GCSBucketName       string
 	LocalStorageDir     string
@@ -40,6 +41,7 @@ func Load() *Config {
 		AdminUrl:            os.Getenv("ADMIN_URL"),
 		CookieDomain:        os.Getenv("COOKIE_DOMAIN"),
 		JwtSecret:           os.Getenv("JWT_SECRET"),
+		TOTPSecret:          os.Getenv("TOTP_SECRET"),
 		DbUrl:               os.Getenv("DB_URL"),
 		GCSBucketName:       os.Getenv("GCS_BUCKET_NAME"),
 		LocalStorageDir:     os.Getenv("LOCAL_STORAGE_DIR"),

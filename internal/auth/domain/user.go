@@ -5,6 +5,7 @@ import "github.com/google/uuid"
 type UserWithHash struct {
 	ID           uuid.UUID
 	Email        string
+	TOTPSecret   *string
 	PasswordHash string
 }
 

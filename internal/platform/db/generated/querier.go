@@ -47,6 +47,7 @@ type Querier interface {
 	UpdateOrderAndShipping(ctx context.Context, arg UpdateOrderAndShippingParams) (UpdateOrderAndShippingRow, error)
 	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error
 	UpdateOrderStripeSessionID(ctx context.Context, arg UpdateOrderStripeSessionIDParams) error
+	UpdateUserTOTPSecret(ctx context.Context, arg UpdateUserTOTPSecretParams) error
 }
 
 var _ Querier = (*Queries)(nil)

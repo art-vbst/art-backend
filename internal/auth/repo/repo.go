@@ -13,6 +13,7 @@ type Repo interface {
 	CreateUser(ctx context.Context, email string, passwordHash string) (*domain.UserWithHash, error)
 	GetUser(ctx context.Context, id uuid.UUID) (*domain.UserWithHash, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.UserWithHash, error)
+	UpdateUserTOTPSecret(ctx context.Context, userID uuid.UUID, secret *string) error
 	CreateRefreshToken(ctx context.Context, params *RefreshTokenCreateParams) (*domain.RefreshToken, error)
 	GetRefreshTokenByJti(ctx context.Context, jti uuid.UUID) (*domain.RefreshToken, error)
 	RevokeToken(ctx context.Context, id uuid.UUID) error

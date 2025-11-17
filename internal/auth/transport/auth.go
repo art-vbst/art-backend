@@ -1,8 +1,10 @@
 package transport
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -34,6 +36,7 @@ func (h *AuthHandler) Routes() chi.Router {
 
 	limiter := utils.NewIPRateLimiter(10, time.Minute)
 	r.With(limiter.Middleware).Post("/login", h.login)
+	r.With(limiter.Middleware).Post("/totp", h.totp)
 
 	return r
 }
@@ -57,6 +60,38 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	returnData := map[string]string{}
+	if data.QRCodeBytes != nil {
+		returnData["qr_code"] = base64.StdEncoding.EncodeToString(*data.QRCodeBytes)
+	}
+
+	utils.SetTOTPCookie(w, data.TOTPToken, h.env.CookieDomain)
+	utils.RespondJSON(w, http.StatusOK, returnData)
+}
+
+type TOTPRequest struct {
+	PresentedTOTP string `json:"totp"`
+}
+
+func (h *AuthHandler) totp(w http.ResponseWriter, r *http.Request) {
+	token, err := utils.GetTOTPCookie(w, r)
+	if err != nil {
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1*utils.MB)
+	var req TOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	data, err := h.service.ValidateTOTP(r.Context(), token, req.PresentedTOTP)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
 	utils.SetAccessCookie(w, data.AccessToken, h.env.CookieDomain)
 	utils.SetRefreshCookie(w, data.RefreshToken, h.env.CookieDomain)
 	utils.RespondJSON(w, http.StatusOK, data.User)
@@ -70,7 +105,7 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := utils.ParseAccessToken(token, h.env.JwtSecret)
 	if err != nil {
-		utils.RespondError(w, http.StatusUnauthorized, "unauthorized")
+		h.handleServiceError(w, err)
 		return
 	}
 
@@ -92,7 +127,7 @@ func (h *AuthHandler) me(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := utils.ParseAccessToken(token, h.env.JwtSecret)
 	if err != nil {
-		utils.RespondError(w, http.StatusUnauthorized, "unauthorized")
+		h.handleServiceError(w, err)
 		return
 	}
 
@@ -119,11 +154,22 @@ func (h *AuthHandler) refresh(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) handleServiceError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, service.ErrUserNotFound):
-		utils.RespondError(w, http.StatusBadRequest, "bad request")
-	case errors.Is(err, service.ErrTokenNotFound):
+	case errors.Is(err, service.ErrInvalidPassword),
+		errors.Is(err, service.ErrInvalidTOTP),
+		errors.Is(err, service.ErrTokenMismatch),
+		errors.Is(err, service.ErrUserMismatch),
+		errors.Is(err, service.ErrUserNotFound),
+		errors.Is(err, service.ErrTokenNotFound),
+		errors.Is(err, service.ErrTokenExpired),
+		errors.Is(err, service.ErrInvalidToken),
+		errors.Is(err, utils.ErrTokenExpired),
+		errors.Is(err, utils.ErrInvalidToken),
+		errors.Is(err, utils.ErrBadAlgorithm),
+		errors.Is(err, utils.ErrBadSignature):
+		log.Println(err)
 		utils.RespondError(w, http.StatusBadRequest, "bad request")
 	default:
+		log.Println(err)
 		utils.RespondServerError(w)
 	}
 }

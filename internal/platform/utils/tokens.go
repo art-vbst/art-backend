@@ -11,6 +11,10 @@ import (
 
 const (
 	Issuer            = "art-vbst/art-backend"
+	TOTPTokenType     = "totp"
+	AccessTokenType   = "access"
+	RefreshTokenType  = "refresh"
+	TOTPExpiration    = 2 * time.Minute
 	AccessExpiration  = 5 * time.Minute
 	RefreshExpiration = 7 * 24 * time.Hour
 )
@@ -22,31 +26,46 @@ var (
 	ErrInvalidToken = errors.New("invalid token")
 )
 
+type TOTPClaims struct {
+	TokenType string    `json:"typ"`
+	UserID    uuid.UUID `json:"uid"`
+	jwt.RegisteredClaims
+}
+
 type AccessClaims struct {
-	UserID uuid.UUID `json:"uid"`
-	Email  string    `json:"email"`
+	TokenType string    `json:"typ"`
+	UserID    uuid.UUID `json:"uid"`
+	Email     string    `json:"email"`
 	jwt.RegisteredClaims
 }
 
 type RefreshClaims struct {
-	UserID uuid.UUID `json:"uid"`
+	TokenType string    `json:"typ"`
+	UserID    uuid.UUID `json:"uid"`
 	jwt.RegisteredClaims
+}
+
+func CreateTOTPToken(user *domain.User, secret string) (string, error) {
+	byteSecret := []byte(secret)
+
+	claims := TOTPClaims{
+		TokenType:        TOTPTokenType,
+		UserID:           user.ID,
+		RegisteredClaims: getRegisteredClaims(user.ID, time.Now().Add(TOTPExpiration)),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	return token.SignedString(byteSecret)
 }
 
 func CreateAccessToken(user *domain.User, secret string) (string, error) {
 	byteSecret := []byte(secret)
 
 	claims := AccessClaims{
-		user.ID,
-		user.Email,
-		jwt.RegisteredClaims{
-			Subject:   user.ID.String(),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessExpiration)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    Issuer,
-			ID:        uuid.NewString(),
-		},
+		TokenType:        AccessTokenType,
+		UserID:           user.ID,
+		Email:            user.Email,
+		RegisteredClaims: getRegisteredClaims(user.ID, time.Now().Add(AccessExpiration)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
@@ -62,15 +81,9 @@ func CreateRefreshToken(userID uuid.UUID, existingExpiresAt *time.Time, secret s
 	}
 
 	claims := RefreshClaims{
-		userID,
-		jwt.RegisteredClaims{
-			Subject:   userID.String(),
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    Issuer,
-			ID:        uuid.NewString(),
-		},
+		TokenType:        RefreshTokenType,
+		UserID:           userID,
+		RegisteredClaims: getRegisteredClaims(userID, expiresAt),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
@@ -83,36 +96,51 @@ func CreateRefreshToken(userID uuid.UUID, existingExpiresAt *time.Time, secret s
 	return tokenString, &claims, nil
 }
 
+func getRegisteredClaims(userID uuid.UUID, expiresAt time.Time) jwt.RegisteredClaims {
+	return jwt.RegisteredClaims{
+		Subject:   userID.String(),
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		NotBefore: jwt.NewNumericDate(time.Now()),
+		Issuer:    Issuer,
+		ID:        uuid.NewString(),
+	}
+}
+
+func ParseTOTPToken(tokenStr string, secret string) (*TOTPClaims, error) {
+	claims := &TOTPClaims{}
+	if err := parseTokenWithClaims(tokenStr, secret, claims); err != nil {
+		return nil, err
+	}
+	if claims.TokenType != TOTPTokenType {
+		return nil, ErrInvalidToken
+	}
+	return claims, nil
+}
+
 func ParseAccessToken(tokenStr string, secret string) (*AccessClaims, error) {
-	keyFunc := func(t *jwt.Token) (any, error) {
-		if t.Method.Alg() != jwt.SigningMethodHS512.Alg() {
-			return nil, ErrBadAlgorithm
-		}
-		return []byte(secret), nil
-	}
-
 	claims := &AccessClaims{}
-
-	token, err := jwt.ParseWithClaims(tokenStr, claims, keyFunc)
-	if err != nil {
-		switch {
-		case errors.Is(err, jwt.ErrTokenExpired):
-			return claims, ErrTokenExpired
-		case errors.Is(err, jwt.ErrSignatureInvalid):
-			return claims, ErrBadSignature
-		default:
-			return claims, err
-		}
+	if err := parseTokenWithClaims(tokenStr, secret, claims); err != nil {
+		return nil, err
 	}
-
-	if !token.Valid {
-		return claims, ErrInvalidToken
+	if claims.TokenType != AccessTokenType {
+		return nil, ErrInvalidToken
 	}
-
 	return claims, nil
 }
 
 func ParseRefreshToken(tokenStr string, secret string) (*RefreshClaims, error) {
+	claims := &RefreshClaims{}
+	if err := parseTokenWithClaims(tokenStr, secret, claims); err != nil {
+		return nil, err
+	}
+	if claims.TokenType != RefreshTokenType {
+		return nil, ErrInvalidToken
+	}
+	return claims, nil
+}
+
+func parseTokenWithClaims(tokenStr, secret string, claims jwt.Claims) error {
 	keyFunc := func(t *jwt.Token) (any, error) {
 		if t.Method.Alg() != jwt.SigningMethodHS512.Alg() {
 			return nil, ErrBadAlgorithm
@@ -120,23 +148,21 @@ func ParseRefreshToken(tokenStr string, secret string) (*RefreshClaims, error) {
 		return []byte(secret), nil
 	}
 
-	claims := &RefreshClaims{}
-
 	token, err := jwt.ParseWithClaims(tokenStr, claims, keyFunc)
 	if err != nil {
 		switch {
 		case errors.Is(err, jwt.ErrTokenExpired):
-			return claims, ErrTokenExpired
+			return ErrTokenExpired
 		case errors.Is(err, jwt.ErrSignatureInvalid):
-			return claims, ErrBadSignature
+			return ErrBadSignature
 		default:
-			return claims, err
+			return err
 		}
 	}
 
 	if !token.Valid {
-		return claims, ErrInvalidToken
+		return ErrInvalidToken
 	}
 
-	return claims, nil
+	return nil
 }

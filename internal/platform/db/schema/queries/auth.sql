@@ -1,10 +1,7 @@
 -- name: CreateUser :one
 INSERT INTO users (email, password_hash)
 VALUES ($1, $2)
-RETURNING id,
-    email,
-    password_hash,
-    created_at;
+RETURNING *;
 
 -- name: CreateRefreshToken :one
 INSERT INTO refresh_tokens (user_id, token_hash, jti, session_id, expires_at)
@@ -12,18 +9,12 @@ VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetUserByID :one
-SELECT id,
-    email,
-    password_hash,
-    created_at
+SELECT *
 FROM users
 WHERE id = $1;
 
 -- name: GetUserByEmail :one
-SELECT id,
-    email,
-    password_hash,
-    created_at
+SELECT *
 FROM users
 WHERE email = $1;
 
@@ -32,6 +23,11 @@ SELECT *
 FROM refresh_tokens
 WHERE jti = $1
     AND revoked = FALSE;
+
+-- name: UpdateUserTOTPSecret :exec
+UPDATE users
+SET totp_secret = $2
+WHERE id = $1;
 
 -- name: RevokeRefreshToken :exec
 UPDATE refresh_tokens

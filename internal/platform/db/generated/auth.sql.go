@@ -51,10 +51,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash)
 VALUES ($1, $2)
-RETURNING id,
-    email,
-    password_hash,
-    created_at
+RETURNING id, email, password_hash, created_at, totp_secret
 `
 
 type CreateUserParams struct {
@@ -70,6 +67,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.TotpSecret,
 	)
 	return i, err
 }
@@ -109,10 +107,7 @@ func (q *Queries) GetRefreshTokenByJTI(ctx context.Context, jti uuid.UUID) (Refr
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id,
-    email,
-    password_hash,
-    created_at
+SELECT id, email, password_hash, created_at, totp_secret
 FROM users
 WHERE email = $1
 `
@@ -125,15 +120,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.TotpSecret,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id,
-    email,
-    password_hash,
-    created_at
+SELECT id, email, password_hash, created_at, totp_secret
 FROM users
 WHERE id = $1
 `
@@ -146,6 +139,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.TotpSecret,
 	)
 	return i, err
 }
@@ -180,5 +174,21 @@ WHERE session_id = $1
 
 func (q *Queries) RevokeSessionRefreshTokens(ctx context.Context, sessionID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, revokeSessionRefreshTokens, sessionID)
+	return err
+}
+
+const updateUserTOTPSecret = `-- name: UpdateUserTOTPSecret :exec
+UPDATE users
+SET totp_secret = $2
+WHERE id = $1
+`
+
+type UpdateUserTOTPSecretParams struct {
+	ID         uuid.UUID `db:"id" json:"id"`
+	TotpSecret *string   `db:"totp_secret" json:"totp_secret"`
+}
+
+func (q *Queries) UpdateUserTOTPSecret(ctx context.Context, arg UpdateUserTOTPSecretParams) error {
+	_, err := q.db.Exec(ctx, updateUserTOTPSecret, arg.ID, arg.TotpSecret)
 	return err
 }
