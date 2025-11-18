@@ -91,7 +91,7 @@ func (s *AuthService) initializeTOTP(ctx context.Context, user *domain.User) ([]
 	return utils.GenerateQRCode(key.URL())
 }
 
-func (s *AuthService) ValidateTOTP(ctx context.Context, token, presentedTOTP string) (*UserWithTokens, error) {
+func (s *AuthService) ValidateTOTP(ctx context.Context, token, totp string) (*UserWithTokens, error) {
 	totpClaims, err := utils.ParseTOTPToken(token, s.env.JwtSecret)
 	if err != nil {
 		switch {
@@ -103,26 +103,18 @@ func (s *AuthService) ValidateTOTP(ctx context.Context, token, presentedTOTP str
 			return nil, err
 		}
 	}
+
 	userWithHash, err := s.getUser(ctx, totpClaims.UserID)
 	if err != nil {
 		return nil, err
 	}
 	user := domain.StripHash(userWithHash)
 
-	var totpSecret string
-	masterKey, err := hex.DecodeString(s.env.TOTPSecret)
+	valid, err := s.validateTOTP(userWithHash.TOTPSecret, totp)
 	if err != nil {
 		return nil, err
 	}
-	if userWithHash.TOTPSecret != nil {
-		decryptedSecret, err := utils.Decrypt(masterKey, *userWithHash.TOTPSecret)
-		if err != nil {
-			return nil, err
-		}
-		totpSecret = decryptedSecret
-	}
-
-	if !utils.IsTOTPValid(presentedTOTP, totpSecret) {
+	if !valid {
 		return nil, ErrInvalidTOTP
 	}
 
@@ -137,6 +129,27 @@ func (s *AuthService) ValidateTOTP(ctx context.Context, token, presentedTOTP str
 
 	data := &UserWithTokens{user, refresh, access}
 	return data, nil
+}
+
+func (s *AuthService) validateTOTP(userSecret *string, totp string) (bool, error) {
+	var totpSecret string
+	masterKey, err := hex.DecodeString(s.env.TOTPSecret)
+	if err != nil {
+		return false, err
+	}
+	if userSecret != nil {
+		decryptedSecret, err := utils.Decrypt(masterKey, *userSecret)
+		if err != nil {
+			return false, err
+		}
+		totpSecret = decryptedSecret
+	}
+
+	if !utils.IsTOTPValid(totp, totpSecret) {
+		return false, ErrInvalidTOTP
+	}
+
+	return true, nil
 }
 
 func (s *AuthService) getUser(ctx context.Context, id uuid.UUID) (*domain.UserWithHash, error) {
