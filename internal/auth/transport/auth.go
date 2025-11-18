@@ -114,8 +114,8 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SetAccessCookie(w, "", "")
-	utils.SetRefreshCookie(w, "", "")
+	utils.SetAccessCookie(w, "", h.env.CookieDomain)
+	utils.SetRefreshCookie(w, "", h.env.CookieDomain)
 	w.WriteHeader(http.StatusOK)
 }
 
