@@ -16,7 +16,7 @@ const (
 	RefreshTokenType  = "refresh"
 	TOTPExpiration    = 2 * time.Minute
 	AccessExpiration  = 5 * time.Minute
-	RefreshExpiration = 7 * 24 * time.Hour
+	RefreshExpiration = 14 * 24 * time.Hour
 )
 
 var (
