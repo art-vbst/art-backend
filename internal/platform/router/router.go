@@ -8,6 +8,7 @@ import (
 	artwork "github.com/art-vbst/art-backend/internal/artwork/transport"
 	auth "github.com/art-vbst/art-backend/internal/auth/transport"
 	payments "github.com/art-vbst/art-backend/internal/payments/transport"
+	"github.com/art-vbst/art-backend/internal/platform/assets"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/mailer"
@@ -22,14 +23,16 @@ type RouterService struct {
 	provider storage.Provider
 	config   *config.Config
 	mailer   mailer.Mailer
+	assets   *assets.Assets
 }
 
-func New(db *store.Store, provider storage.Provider, config *config.Config, mailer mailer.Mailer) *RouterService {
+func New(db *store.Store, provider storage.Provider, config *config.Config, mailer mailer.Mailer, assets *assets.Assets) *RouterService {
 	return &RouterService{
 		db:       db,
 		provider: provider,
 		config:   config,
 		mailer:   mailer,
+		assets:   assets,
 	}
 }
 
@@ -77,10 +80,10 @@ func (s *RouterService) registerRoutes(r *chi.Mux) {
 	authHandler := auth.New(s.db, s.config)
 	r.Mount("/auth", authHandler.Routes())
 
-	artworkHandler := artwork.NewArtworkHandler(s.db, s.provider, s.config)
+	artworkHandler := artwork.NewArtworkHandler(s.db, s.provider, s.config, s.assets)
 	r.Mount("/artworks", artworkHandler.Routes())
 
-	imageHandler := artwork.NewImageHandler(s.db, s.provider, s.config)
+	imageHandler := artwork.NewImageHandler(s.db, s.provider, s.config, s.assets)
 	imagesRoute := fmt.Sprintf("/artworks/{%s}/images", artwork.ArtworkIDParam)
 	r.Mount(imagesRoute, imageHandler.Routes())
 

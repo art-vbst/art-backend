@@ -11,6 +11,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/artwork/repo"
 	"github.com/art-vbst/art-backend/internal/artwork/service"
+	"github.com/art-vbst/art-backend/internal/platform/assets"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/storage"
@@ -29,11 +30,12 @@ var (
 type ImageHandler struct {
 	service *service.ImageService
 	env     *config.Config
+	assets  *assets.Assets
 }
 
-func NewImageHandler(db *store.Store, provider storage.Provider, env *config.Config) *ImageHandler {
-	service := service.NewImageService(repo.New(db), provider)
-	return &ImageHandler{service: service, env: env}
+func NewImageHandler(db *store.Store, provider storage.Provider, env *config.Config, assets *assets.Assets) *ImageHandler {
+	service := service.NewImageService(repo.New(db), provider, assets)
+	return &ImageHandler{service: service, env: env, assets: assets}
 }
 
 func (h *ImageHandler) Routes() chi.Router {

@@ -9,6 +9,7 @@ import (
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/artwork/repo"
 	"github.com/art-vbst/art-backend/internal/artwork/service"
+	"github.com/art-vbst/art-backend/internal/platform/assets"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
 	"github.com/art-vbst/art-backend/internal/platform/storage"
@@ -22,8 +23,8 @@ type ArtworkHandler struct {
 	env     *config.Config
 }
 
-func NewArtworkHandler(db *store.Store, provider storage.Provider, env *config.Config) *ArtworkHandler {
-	service := service.NewArtworkService(repo.New(db), provider)
+func NewArtworkHandler(db *store.Store, provider storage.Provider, env *config.Config, assets *assets.Assets) *ArtworkHandler {
+	service := service.NewArtworkService(repo.New(db), provider, assets)
 	return &ArtworkHandler{service: service, env: env}
 }
 

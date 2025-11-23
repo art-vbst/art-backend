@@ -6,6 +6,7 @@ import (
 
 	"github.com/art-vbst/art-backend/internal/artwork/domain"
 	"github.com/art-vbst/art-backend/internal/artwork/repo"
+	"github.com/art-vbst/art-backend/internal/platform/assets"
 	"github.com/art-vbst/art-backend/internal/platform/storage"
 	"github.com/google/uuid"
 )
@@ -19,8 +20,8 @@ type ArtworkService struct {
 	imageService *ImageService
 }
 
-func NewArtworkService(repo repo.Repo, provider storage.Provider) *ArtworkService {
-	return &ArtworkService{repo: repo, imageService: NewImageService(repo, provider)}
+func NewArtworkService(repo repo.Repo, provider storage.Provider, assets *assets.Assets) *ArtworkService {
+	return &ArtworkService{repo: repo, imageService: NewImageService(repo, provider, assets)}
 }
 
 func (s *ArtworkService) List(ctx context.Context, statuses []domain.ArtworkStatus) ([]domain.Artwork, error) {

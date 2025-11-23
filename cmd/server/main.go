@@ -7,6 +7,7 @@ import (
 
 	"time"
 
+	"github.com/art-vbst/art-backend/internal/platform/assets"
 	"github.com/art-vbst/art-backend/internal/platform/config"
 	"github.com/art-vbst/art-backend/internal/platform/db/pooler"
 	"github.com/art-vbst/art-backend/internal/platform/db/store"
@@ -29,7 +30,10 @@ func main() {
 
 	mailer := mailer.New(env)
 
-	r := router.New(store, provider, env, mailer).CreateRouter()
+	assets := assets.Load()
+	defer assets.Close()
+
+	r := router.New(store, provider, env, mailer, assets).CreateRouter()
 
 	if config.IsDebug() {
 		log.Printf("[WARNING] debug mode enabled")
