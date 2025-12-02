@@ -80,6 +80,7 @@ func (p *Postgres) toCreateArtworkParams(body *domain.ArtworkPayload) (*generate
 		WidthInches:    width,
 		HeightInches:   height,
 		PriceCents:     int32(body.PriceCents),
+		Description:    &body.Description,
 		Paper:          &body.Paper,
 		Status:         body.Status,
 		Medium:         body.Medium,

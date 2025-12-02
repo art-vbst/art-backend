@@ -9,6 +9,7 @@ type ArtworkPayload struct {
 	WidthInches    float64         `json:"width_inches"`
 	HeightInches   float64         `json:"height_inches"`
 	PriceCents     int             `json:"price_cents"`
+	Description    string          `json:"description"`
 	Paper          bool            `json:"paper"`
 	SortOrder      int32           `json:"sort_order"`
 	Status         ArtworkStatus   `json:"status"`

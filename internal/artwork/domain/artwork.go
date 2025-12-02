@@ -20,11 +20,15 @@ const (
 type ArtworkMedium = generated.ArtworkMedium
 
 const (
-	ArtworkMediumOilPanel     ArtworkMedium = "oil_panel"
-	ArtworkMediumAcrylicPanel ArtworkMedium = "acrylic_panel"
-	ArtworkMediumOilMdf       ArtworkMedium = "oil_mdf"
-	ArtworkMediumOilPaper     ArtworkMedium = "oil_paper"
-	ArtworkMediumUnknown      ArtworkMedium = "unknown"
+	ArtworkMediumOilOnPanel        ArtworkMedium = "oil_on_panel"
+	ArtworkMediumAcrylicOnPanel    ArtworkMedium = "acrylic_on_panel"
+	ArtworkMediumOilOnMdf          ArtworkMedium = "oil_on_mdf"
+	ArtworkMediumOilOnOilPaper     ArtworkMedium = "oil_on_oil_paper"
+	ArtworkMediumClaySculpture     ArtworkMedium = "clay_sculpture"
+	ArtworkMediumPlasterSculpture  ArtworkMedium = "plaster_sculpture"
+	ArtworkMediumInkOnPaper        ArtworkMedium = "ink_on_paper"
+	ArtworkMediumMixedMediaOnPaper ArtworkMedium = "mixed_media_on_paper"
+	ArtworkMediumUnknown           ArtworkMedium = "unknown"
 )
 
 type ArtworkCategory = generated.ArtworkCategory
@@ -44,6 +48,7 @@ type Artwork struct {
 	WidthInches    float64         `json:"width_inches"`
 	HeightInches   float64         `json:"height_inches"`
 	PriceCents     int32           `json:"price_cents"`
+	Description    string          `json:"description"`
 	Paper          *bool           `json:"paper"`
 	SortOrder      int32           `json:"sort_order"`
 	SoldAt         *time.Time      `json:"sold_at"`

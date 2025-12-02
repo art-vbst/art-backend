@@ -56,6 +56,11 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 			soldAt = &row.SoldAt.Time
 		}
 
+		var description string
+		if row.Description != nil {
+			description = *row.Description
+		}
+
 		artwork := domain.Artwork{
 			ID:             row.ID,
 			Title:          row.Title,
@@ -64,6 +69,7 @@ func (p *Postgres) toDomainArtworkListRow(rows []generated.ListArtworksRow) []do
 			WidthInches:    widthInches.Float64,
 			HeightInches:   heightInches.Float64,
 			PriceCents:     row.PriceCents,
+			Description:    description,
 			Paper:          row.Paper,
 			SortOrder:      row.SortOrder,
 			SoldAt:         soldAt,

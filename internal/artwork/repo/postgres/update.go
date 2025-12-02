@@ -124,6 +124,7 @@ func (p *Postgres) toUpdateArtworkParams(id uuid.UUID, payload *domain.ArtworkPa
 		WidthInches:    widthInches,
 		HeightInches:   heightInches,
 		PriceCents:     int32(payload.PriceCents),
+		Description:    &payload.Description,
 		Paper:          &payload.Paper,
 		SortOrder:      payload.SortOrder,
 		Status:         payload.Status,

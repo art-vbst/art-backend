@@ -59,11 +59,15 @@ func (ns NullArtworkCategory) Value() (driver.Value, error) {
 type ArtworkMedium string
 
 const (
-	ArtworkMediumOilPanel     ArtworkMedium = "oil_panel"
-	ArtworkMediumAcrylicPanel ArtworkMedium = "acrylic_panel"
-	ArtworkMediumOilMdf       ArtworkMedium = "oil_mdf"
-	ArtworkMediumOilPaper     ArtworkMedium = "oil_paper"
-	ArtworkMediumUnknown      ArtworkMedium = "unknown"
+	ArtworkMediumOilOnPanel        ArtworkMedium = "oil_on_panel"
+	ArtworkMediumAcrylicOnPanel    ArtworkMedium = "acrylic_on_panel"
+	ArtworkMediumOilOnMdf          ArtworkMedium = "oil_on_mdf"
+	ArtworkMediumOilOnOilPaper     ArtworkMedium = "oil_on_oil_paper"
+	ArtworkMediumClaySculpture     ArtworkMedium = "clay_sculpture"
+	ArtworkMediumPlasterSculpture  ArtworkMedium = "plaster_sculpture"
+	ArtworkMediumInkOnPaper        ArtworkMedium = "ink_on_paper"
+	ArtworkMediumMixedMediaOnPaper ArtworkMedium = "mixed_media_on_paper"
+	ArtworkMediumUnknown           ArtworkMedium = "unknown"
 )
 
 func (e *ArtworkMedium) Scan(src interface{}) error {
@@ -251,6 +255,7 @@ type Artwork struct {
 	Category       ArtworkCategory  `db:"category" json:"category"`
 	CreatedAt      pgtype.Timestamp `db:"created_at" json:"created_at"`
 	OrderID        pgtype.UUID      `db:"order_id" json:"order_id"`
+	Description    *string          `db:"description" json:"description"`
 }
 
 type Image struct {

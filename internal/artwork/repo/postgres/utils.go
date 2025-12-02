@@ -19,6 +19,11 @@ func toDomainArtwork(row *generated.Artwork) (*domain.Artwork, error) {
 		return nil, err
 	}
 
+	var description string
+	if row.Description != nil {
+		description = *row.Description
+	}
+
 	var soldAt *time.Time
 	if row.SoldAt.Valid {
 		soldAt = &row.SoldAt.Time
@@ -33,6 +38,7 @@ func toDomainArtwork(row *generated.Artwork) (*domain.Artwork, error) {
 		HeightInches:   heightInches.Float64,
 		PriceCents:     row.PriceCents,
 		Paper:          row.Paper,
+		Description:    description,
 		SortOrder:      row.SortOrder,
 		SoldAt:         soldAt,
 		Status:         row.Status,

@@ -48,6 +48,11 @@ func (p *Postgres) toDetailDomainArtwork(rows []generated.GetArtworkWithImagesRo
 		return nil, err
 	}
 
+	var description string
+	if artworkRow.Description != nil {
+		description = *artworkRow.Description
+	}
+
 	var soldAt *time.Time
 	if artworkRow.SoldAt.Valid {
 		soldAt = &artworkRow.SoldAt.Time
@@ -61,6 +66,7 @@ func (p *Postgres) toDetailDomainArtwork(rows []generated.GetArtworkWithImagesRo
 		WidthInches:    widthInches.Float64,
 		HeightInches:   heightInches.Float64,
 		PriceCents:     artworkRow.PriceCents,
+		Description:    description,
 		Paper:          artworkRow.Paper,
 		SortOrder:      artworkRow.SortOrder,
 		SoldAt:         soldAt,

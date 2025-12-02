@@ -6,6 +6,7 @@ INSERT INTO artworks (
         width_inches,
         height_inches,
         price_cents,
+        description,
         paper,
         status,
         medium,
@@ -21,7 +22,8 @@ VALUES (
         $7,
         $8,
         $9,
-        $10
+        $10,
+        $11
     )
 RETURNING *;
 
@@ -94,11 +96,12 @@ SET title = $2,
     width_inches = $5,
     height_inches = $6,
     price_cents = $7,
-    paper = $8,
-    sort_order = $9,
-    status = $10,
-    medium = $11,
-    category = $12
+    description = $8,
+    paper = $9,
+    sort_order = $10,
+    status = $11,
+    medium = $12,
+    category = $13
 WHERE id = $1
 RETURNING *;
 
